@@ -11,6 +11,19 @@ export const getAllUsersController = asyncHandler(async (req, res) => {
   });
 });
 
+export const deleteUserController = asyncHandler(async (req, res) => {
+  const user = await userService.deleteUser(req.params.id);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  res.json({
+    message: "User deleted successfully",
+    data: user,
+  });
+});
+
 export const createUserController = asyncHandler(async (req, res, next) => {
   const { firstName, lastName, username, password, role } = req.body;
 

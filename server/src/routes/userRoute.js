@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createUserController,
+  deleteUserController,
   getAllUsersController,
   updateUserController,
 } from "../controllers/userController.js";
@@ -28,5 +29,7 @@ router.patch(
   authorize("admin"),
   updateUserController,
 );
+
+router.delete("/:id", verifyToken, authorize("admin"), deleteUserController);
 
 export default router;

@@ -6,6 +6,10 @@ export const getAllUsers = async () => {
   return await userModel.getAllUsers();
 };
 
+export const deleteUser = async (userId) => {
+  return await userModel.deleteUser(userId);
+};
+
 export const createUser = async ({
   firstName,
   lastName,

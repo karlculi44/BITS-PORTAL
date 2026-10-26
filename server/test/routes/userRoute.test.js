@@ -19,6 +19,72 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+describe("DELETE /api/users/:id", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("deletes a user and returns only non-sensitive fields", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 2,
+          first_name: "Test",
+          last_name: "User",
+          username: "testuser",
+          role: "staff",
+          is_active: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-02T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .delete("/api/users/2")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "User deleted successfully",
+      data: {
+        id: 2,
+        first_name: "Test",
+        last_name: "User",
+        username: "testuser",
+        role: "staff",
+        is_active: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-02T00:00:00.000Z",
+      },
+    });
+    expect(pool.query.mock.calls[0][0]).toContain("DELETE FROM users");
+    expect(pool.query.mock.calls[0][0]).not.toContain("password_hash");
+    expect(pool.query.mock.calls[0][1]).toEqual(["2"]);
+  });
+
+  it("returns 404 when the user does not exist", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .delete("/api/users/999")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("User not found");
+  });
+
+  it("does not allow staff to delete users", async () => {
+    const response = await request(app)
+      .delete("/api/users/2")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(response.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/users", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;

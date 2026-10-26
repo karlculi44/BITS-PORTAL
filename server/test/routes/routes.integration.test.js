@@ -74,6 +74,42 @@ describe("routes integration", () => {
     await testPool.end();
   });
 
+  it("deletes a user and cascades its refresh tokens", async () => {
+    const admin = await createUser({ role: "admin" });
+    const user = await createUser();
+    const tokenHash = `test_${randomUUID()}`;
+
+    await testPool.query(
+      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, new Date(Date.now() + 60 * 60 * 1000)],
+    );
+
+    const response = await request(app)
+      .delete(`/api/users/${user.id}`)
+      .set("Cookie", accessCookie(admin.id));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      message: "User deleted successfully",
+      data: {
+        id: user.id,
+        username: user.username,
+      },
+    });
+    expect(response.body.data).not.toHaveProperty("password_hash");
+    createdUserIds.delete(user.id);
+
+    const deletedUser = await userModel.getUserByUsername(user.username);
+    const deletedToken = await testPool.query(
+      "SELECT id FROM refresh_tokens WHERE token_hash = $1",
+      [tokenHash],
+    );
+
+    expect(deletedUser).toBeUndefined();
+    expect(deletedToken.rows).toHaveLength(0);
+  });
+
   it("returns users to admins without authentication data", async () => {
     const admin = await createUser({ role: "admin" });
     const user = await createUser();

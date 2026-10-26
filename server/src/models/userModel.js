@@ -66,6 +66,25 @@ export const getAllUsers = async () => {
   return result.rows;
 };
 
+export const deleteUser = async (userId) => {
+  const result = await pool.query(
+    `DELETE FROM users
+    WHERE id = $1
+    RETURNING
+      id,
+      first_name,
+      last_name,
+      username,
+      role,
+      is_active,
+      created_at,
+      updated_at`,
+    [userId],
+  );
+
+  return result.rows[0];
+};
+
 export const updateUser = async ({
   userId,
   firstName,
