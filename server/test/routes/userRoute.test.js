@@ -19,6 +19,61 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+describe("GET /api/users", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("returns the users without sensitive authentication fields", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          first_name: "Test",
+          last_name: "User",
+          username: "testuser",
+          role: "staff",
+          is_active: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-02T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/api/users")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "Users retrieved successfully",
+      data: [
+        {
+          id: 1,
+          first_name: "Test",
+          last_name: "User",
+          username: "testuser",
+          role: "staff",
+          is_active: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-02T00:00:00.000Z",
+        },
+      ],
+    });
+    expect(pool.query.mock.calls[0][0]).not.toContain("password_hash");
+  });
+
+  it("does not allow staff to list users", async () => {
+    const response = await request(app)
+      .get("/api/users")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(response.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
+
 describe("POST /api/users", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;

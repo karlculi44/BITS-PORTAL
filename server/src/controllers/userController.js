@@ -2,6 +2,15 @@ import * as userService from "../services/userService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 
+export const getAllUsersController = asyncHandler(async (req, res) => {
+  const users = await userService.getAllUsers();
+
+  res.json({
+    message: "Users retrieved successfully",
+    data: users,
+  });
+});
+
 export const createUserController = asyncHandler(async (req, res, next) => {
   const { firstName, lastName, username, password, role } = req.body;
 

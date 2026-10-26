@@ -74,6 +74,30 @@ describe("routes integration", () => {
     await testPool.end();
   });
 
+  it("returns users to admins without authentication data", async () => {
+    const admin = await createUser({ role: "admin" });
+    const user = await createUser();
+
+    const response = await request(app)
+      .get("/api/users")
+      .set("Cookie", accessCookie(admin.id));
+
+    expect(response.status).toBe(200);
+    const listedUser = response.body.data.find(
+      (listed) => listed.id === user.id,
+    );
+    expect(listedUser).toMatchObject({
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      username: user.username,
+      role: "staff",
+      is_active: true,
+    });
+    expect(listedUser).not.toHaveProperty("password_hash");
+    expect(listedUser).not.toHaveProperty("refresh_token");
+  });
+
   it("creates a user and permits the created user to log in", async () => {
     const admin = await createUser({ role: "admin" });
     const username = `route_${randomUUID()}`;

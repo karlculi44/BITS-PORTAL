@@ -2,6 +2,10 @@ import bcrypt from "bcrypt";
 import * as userModel from "../models/userModel.js";
 import AppError from "../utils/AppError.js";
 
+export const getAllUsers = async () => {
+  return await userModel.getAllUsers();
+};
+
 export const createUser = async ({
   firstName,
   lastName,

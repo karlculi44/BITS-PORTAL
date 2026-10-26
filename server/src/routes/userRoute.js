@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createUserController,
+  getAllUsersController,
   updateUserController,
 } from "../controllers/userController.js";
 import { createUserSchema, updateUserSchema } from "../schemas/userSchemas.js";
@@ -9,6 +10,8 @@ import authorize from "../middlewares/authorize.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
+
+router.get("/", verifyToken, authorize("admin"), getAllUsersController);
 
 router.post(
   "/",
