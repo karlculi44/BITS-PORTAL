@@ -19,7 +19,7 @@ export const createUserController = asyncHandler(async (req, res, next) => {
   const existingUser = await userService.getUserByUsername(username);
 
   if (existingUser) {
-    throw new AppError("User with this username already exists", 400);
+    throw new AppError("Username unavailable", 400);
   }
 
   const user = await userService.createUser({
