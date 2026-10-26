@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import pool from "./config/db.js";
 import userRoute from "./routes/userRoute.js";
+import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
 
@@ -33,5 +34,8 @@ app.get("/api/health", async (req, res, next) => {
 
 // user routes
 app.use("/api/users", userRoute);
+
+// Error handler
+app.use(errorHandler);
 
 export default app;
