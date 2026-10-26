@@ -8,6 +8,7 @@ vi.mock("../../src/config/db.js", () => ({
 
 import jwt from "jsonwebtoken";
 import request from "supertest";
+import bcrypt from "bcrypt";
 import app from "../../src/app.js";
 import pool from "../../src/config/db.js";
 
@@ -17,6 +18,96 @@ const accessCookie = (role) => {
   const token = jwt.sign({ role }, accessSecret, { subject: "1" });
   return `accessToken=${token}`;
 };
+
+describe("POST /api/users", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("creates a user and does not return the password hash", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 2,
+            first_name: "Test",
+            last_name: "User",
+            username: "testuser",
+            role: "staff",
+            is_active: true,
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      });
+
+    const response = await request(app)
+      .post("/api/users")
+      .set("Cookie", accessCookie("admin"))
+      .send({
+        firstName: "Test",
+        lastName: "User",
+        username: "testuser",
+        password: "password123",
+        role: "staff",
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message: "User created successfully",
+      data: {
+        id: 2,
+        first_name: "Test",
+        last_name: "User",
+        username: "testuser",
+        role: "staff",
+        is_active: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+      },
+    });
+    expect(response.body.data).not.toHaveProperty("password_hash");
+    expect(pool.query).toHaveBeenCalledTimes(2);
+
+    const insertedUserValues = pool.query.mock.calls[1][1];
+    expect(await bcrypt.compare("password123", insertedUserValues[3])).toBe(
+      true,
+    );
+  });
+
+  it("rejects invalid creation input", async () => {
+    const response = await request(app)
+      .post("/api/users")
+      .set("Cookie", accessCookie("admin"))
+      .send({
+        firstName: "",
+        lastName: "User",
+        username: "short",
+        password: "short",
+        role: "staff",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toBeDefined();
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it("does not allow staff to create users", async () => {
+    const response = await request(app)
+      .post("/api/users")
+      .set("Cookie", accessCookie("staff"))
+      .send({
+        firstName: "Test",
+        lastName: "User",
+        username: "testuser",
+        password: "password123",
+        role: "staff",
+      });
+
+    expect(response.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
 
 describe("PATCH /api/users/:id", () => {
   beforeEach(() => {
