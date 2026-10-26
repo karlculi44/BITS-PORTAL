@@ -47,3 +47,22 @@ export const getUserByUsername = async (username) => {
 
   return result.rows[0];
 };
+
+export const getUserForLogin = async (username) => {
+  const result = await pool.query(
+    `SELECT
+      id,
+      first_name,
+      last_name,
+      username,
+      password_hash,
+      role,
+      is_active,
+      created_at
+    FROM users
+    WHERE username = $1`,
+    [username],
+  );
+
+  return result.rows[0];
+};

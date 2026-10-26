@@ -1,14 +1,17 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import pool from "./config/db.js";
 import userRoute from "./routes/userRoute.js";
+import authRoute from "./routes/authRoute.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
 
 // Middleware
 app.use(helmet());
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -34,6 +37,9 @@ app.get("/api/health", async (req, res, next) => {
 
 // user routes
 app.use("/api/users", userRoute);
+
+// auth route
+app.use("/api/auth", authRoute);
 
 // Error handler
 app.use(errorHandler);
