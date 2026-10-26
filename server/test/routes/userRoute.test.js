@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../config/db.js", () => ({
+vi.mock("../../src/config/db.js", () => ({
   default: {
     query: vi.fn(),
   },
@@ -8,8 +8,8 @@ vi.mock("../config/db.js", () => ({
 
 import jwt from "jsonwebtoken";
 import request from "supertest";
-import app from "../app.js";
-import pool from "../config/db.js";
+import app from "../../src/app.js";
+import pool from "../../src/config/db.js";
 
 const accessSecret = "test-access-secret";
 
