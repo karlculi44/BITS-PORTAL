@@ -36,3 +36,34 @@ export const createUserController = asyncHandler(async (req, res, next) => {
     data: user,
   });
 });
+
+export const updateUserController = asyncHandler(async (req, res) => {
+  const { firstName, lastName, username, password, role, isActive } = req.body;
+
+  if (username !== undefined) {
+    const existingUser = await userService.getUserByUsername(username);
+
+    if (existingUser && String(existingUser.id) !== req.params.id) {
+      throw new AppError("Username unavailable", 409);
+    }
+  }
+
+  const user = await userService.updateUser({
+    userId: req.params.id,
+    firstName,
+    lastName,
+    username,
+    password,
+    role,
+    isActive,
+  });
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  res.json({
+    message: "User updated successfully",
+    data: user,
+  });
+});
