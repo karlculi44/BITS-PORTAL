@@ -5,7 +5,7 @@ const { Pool } = pg;
 const sourceDatabaseUrl = process.env.DATABASE_URL;
 
 if (!sourceDatabaseUrl) {
-  throw new Error("DATABASE_URL is required for model integration tests");
+  throw new Error("DATABASE_URL is required for database integration tests");
 }
 
 const testDatabaseUrl = new URL(sourceDatabaseUrl);
@@ -13,7 +13,7 @@ const host = testDatabaseUrl.hostname.replace(/^\[|\]$/g, "").toLowerCase();
 
 if (!["localhost", "127.0.0.1", "::1"].includes(host)) {
   throw new Error(
-    "Model integration tests require a local PostgreSQL DATABASE_URL",
+    "Database integration tests require a local PostgreSQL DATABASE_URL",
   );
 }
 
