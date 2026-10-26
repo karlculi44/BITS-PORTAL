@@ -1,12 +1,24 @@
-import pool from "../config/db.js";
+import bcrypt from "bcrypt";
+import * as userModel from "../models/userModel.js";
 
-export async function createUser({ name, email }) {
-  const result = await pool.query(
-    `INSERT INTO users (name, email)
-     VALUES ($1, $2)
-     RETURNING id, name, email`,
-    [name, email],
-  );
+export const createUser = async ({
+  firstName,
+  lastName,
+  username,
+  password,
+  role,
+}) => {
+  const passwordHash = await bcrypt.hash(password, 12);
 
-  return result.rows[0];
-}
+  return await userModel.insertUser({
+    firstName,
+    lastName,
+    username,
+    passwordHash,
+    role,
+  });
+};
+
+export const getUserByUsername = async (username) => {
+  return await userModel.getUserByUsername(username);
+};
