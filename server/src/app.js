@@ -6,6 +6,7 @@ import pool from "./config/db.js";
 import userRoute from "./routes/userRoute.js";
 import authRoute from "./routes/authRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
+import officeServiceRoute from "./routes/officeServiceRoute.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -44,6 +45,9 @@ app.use("/api/auth", authRoute);
 
 // category routes
 app.use("/api/categories", categoryRoute);
+
+// office service routes
+app.use("/api/services", officeServiceRoute);
 
 // Error handler
 app.use(errorHandler);

@@ -1,0 +1,44 @@
+import * as officeServiceModel from "../models/officeServiceModel.js";
+import AppError from "../utils/AppError.js";
+
+export const createService = async (service) => {
+  const category = await officeServiceModel.getCategoryById(
+    service.category_id,
+  );
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  if (category.type !== "service") {
+    throw new AppError("Category must be a service category", 400);
+  }
+
+  try {
+    const createdService = await officeServiceModel.insertService(service);
+
+    if (createdService) {
+      return createdService;
+    }
+
+    const currentCategory = await officeServiceModel.getCategoryById(
+      service.category_id,
+    );
+
+    if (!currentCategory) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (currentCategory.type !== "service") {
+      throw new AppError("Category must be a service category", 400);
+    }
+
+    throw new Error("Service was not created");
+  } catch (error) {
+    if (error.code === "23503") {
+      throw new AppError("Category not found", 404);
+    }
+
+    throw error;
+  }
+};
