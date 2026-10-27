@@ -36,11 +36,6 @@ router.patch(
   updateServiceController,
 );
 
-router.delete(
-  "/:id",
-  verifyToken,
-  authorize("admin"),
-  deleteServiceController,
-);
+router.delete("/:id", verifyToken, authorize("admin"), deleteServiceController);
 
 export default router;

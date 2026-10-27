@@ -66,16 +66,6 @@ export const updateService = async (serviceId, service) => {
     }
   };
 
-  export const deleteService = async (serviceId) => {
-    const service = await officeServiceModel.deleteService(serviceId);
-
-    if (!service) {
-      throw new AppError("Service not found", 404);
-    }
-
-    return service;
-  };
-
   if (service.category_id !== undefined) {
     await validateCategory();
   }
@@ -102,4 +92,14 @@ export const updateService = async (serviceId, service) => {
 
     throw error;
   }
+};
+
+export const deleteService = async (serviceId) => {
+  const service = await officeServiceModel.deleteService(serviceId);
+
+  if (!service) {
+    throw new AppError("Service not found", 404);
+  }
+
+  return service;
 };

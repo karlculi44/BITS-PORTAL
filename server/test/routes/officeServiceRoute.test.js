@@ -494,3 +494,69 @@ describe("GET /api/services/search/:term", () => {
     expect(pool.query).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("DELETE /api/services/:id", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("deletes a service and returns the deleted record", async () => {
+    const service = {
+      id: 9,
+      ...validInput,
+      image: null,
+      sort_order: 0,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+    pool.query.mockResolvedValueOnce({ rows: [service] });
+
+    const response = await request(app)
+      .delete("/api/services/9")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "Service deleted successfully",
+      data: service,
+    });
+    expect(pool.query.mock.calls[0][0]).toContain("DELETE FROM services");
+    expect(pool.query.mock.calls[0][1]).toEqual(["9"]);
+  });
+
+  it("returns 404 when the service does not exist", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .delete("/api/services/999")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Service not found");
+  });
+
+  it.each(["invalid", "0", "2147483648"])(
+    "rejects invalid service ID %s",
+    async (id) => {
+      const response = await request(app)
+        .delete(`/api/services/${id}`)
+        .set("Cookie", accessCookie("admin"));
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Invalid service ID");
+      expect(pool.query).not.toHaveBeenCalled();
+    },
+  );
+
+  it("requires authentication and admin authorization", async () => {
+    const unauthenticated = await request(app).delete("/api/services/9");
+    const staff = await request(app)
+      .delete("/api/services/9")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});

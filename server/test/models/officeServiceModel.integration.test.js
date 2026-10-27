@@ -221,4 +221,20 @@ describe("officeServiceModel integration", () => {
       officeServiceModel.updateService(created.id, { category_id: 99 }),
     ).resolves.toBeUndefined();
   });
+
+  it("deletes a service and returns the deleted record", async () => {
+    const created = await officeServiceModel.insertService({
+      title: "Delete service",
+      url: "https://example.com/delete-service",
+      description: "Service to delete",
+      category_id: 10,
+    });
+
+    await expect(officeServiceModel.deleteService(created.id)).resolves.toEqual(
+      created,
+    );
+    await expect(
+      officeServiceModel.deleteService(created.id),
+    ).resolves.toBeUndefined();
+  });
 });

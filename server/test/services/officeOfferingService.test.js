@@ -6,6 +6,7 @@ vi.mock("../../src/models/officeServiceModel.js", () => ({
   insertService: vi.fn(),
   searchServices: vi.fn(),
   updateService: vi.fn(),
+  deleteService: vi.fn(),
 }));
 
 import * as officeServiceModel from "../../src/models/officeServiceModel.js";
@@ -14,6 +15,7 @@ import {
   getAllServices,
   searchServices,
   updateService,
+  deleteService,
 } from "../../src/services/officeOfferingService.js";
 
 const serviceInput = {
@@ -31,6 +33,7 @@ describe("officeOfferingService", () => {
     officeServiceModel.insertService.mockReset();
     officeServiceModel.searchServices.mockReset();
     officeServiceModel.updateService.mockReset();
+    officeServiceModel.deleteService.mockReset();
   });
 
   it("returns all services from the model", async () => {
@@ -184,5 +187,22 @@ describe("officeOfferingService", () => {
     const error = new Error("Database unavailable");
     officeServiceModel.updateService.mockRejectedValueOnce(error);
     await expect(updateService(8, { title: "Updated" })).rejects.toBe(error);
+  });
+
+  it("deletes a service through the model", async () => {
+    const service = { id: 8, title: "Transcript Request" };
+    officeServiceModel.deleteService.mockResolvedValueOnce(service);
+
+    await expect(deleteService("8")).resolves.toBe(service);
+    expect(officeServiceModel.deleteService).toHaveBeenCalledWith("8");
+  });
+
+  it("returns not found when the service does not exist", async () => {
+    officeServiceModel.deleteService.mockResolvedValueOnce(undefined);
+
+    await expect(deleteService("99")).rejects.toMatchObject({
+      message: "Service not found",
+      statusCode: 404,
+    });
   });
 });
