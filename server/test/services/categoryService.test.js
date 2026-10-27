@@ -47,28 +47,19 @@ describe("categoryService", () => {
     const category = {
       id: 1,
       name: "Books",
-      description: "Reading materials",
       type: "service",
       is_active: true,
     };
     categoryModel.insertCategory.mockResolvedValueOnce(category);
 
-    await expect(
-      createCategory("Books", "Reading materials", "service"),
-    ).resolves.toBe(category);
-    expect(categoryModel.insertCategory).toHaveBeenCalledWith(
-      "Books",
-      "Reading materials",
-      "service",
-    );
+    await expect(createCategory("Books", "service")).resolves.toBe(category);
+    expect(categoryModel.insertCategory).toHaveBeenCalledWith("Books", "service");
   });
 
   it("maps a duplicate category constraint to a conflict error", async () => {
     categoryModel.insertCategory.mockRejectedValueOnce({ code: "23505" });
 
-    await expect(
-      createCategory("Books", "Reading materials", "service"),
-    ).rejects.toMatchObject({
+    await expect(createCategory("Books", "service")).rejects.toMatchObject({
       message: "Category already exists",
       statusCode: 409,
     });
@@ -78,17 +69,14 @@ describe("categoryService", () => {
     const error = new Error("Database unavailable");
     categoryModel.insertCategory.mockRejectedValueOnce(error);
 
-    await expect(
-      createCategory("Books", "Reading materials", "service"),
-    ).rejects.toBe(error);
+    await expect(createCategory("Books", "service")).rejects.toBe(error);
   });
 
   it("passes category updates through to the model", async () => {
-    const update = { categoryId: "1", description: "Updated", isActive: false };
+    const update = { categoryId: "1", name: "Updated Books", isActive: false };
     const category = {
       id: 1,
-      name: "Books",
-      description: "Updated",
+      name: "Updated Books",
       type: "service",
       is_active: false,
     };

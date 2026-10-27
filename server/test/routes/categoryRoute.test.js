@@ -34,7 +34,6 @@ describe("GET /api/categories/:name", () => {
       const category = {
         id: 1,
         name: "Books",
-        description: "Reading materials",
         type: "service",
         is_active: true,
       };
@@ -98,8 +97,7 @@ describe("GET /api/categories/:name", () => {
     it("updates supplied fields and returns the category", async () => {
       const category = {
         id: 1,
-        name: "Books",
-        description: "Updated",
+        name: "Updated Books",
         type: "service",
         is_active: false,
       };
@@ -108,13 +106,17 @@ describe("GET /api/categories/:name", () => {
       const response = await request(app)
         .patch("/api/categories/1")
         .set("Cookie", accessCookie("admin"))
-        .send({ description: "Updated", isActive: false });
+        .send({ name: "Updated Books", isActive: false });
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual(category);
-      expect(pool.query.mock.calls[0][0]).toContain("description = $1");
+      expect(pool.query.mock.calls[0][0]).toContain("name = $1");
       expect(pool.query.mock.calls[0][0]).toContain("is_active = $2");
-      expect(pool.query.mock.calls[0][1]).toEqual(["Updated", false, "1"]);
+      expect(pool.query.mock.calls[0][1]).toEqual([
+        "Updated Books",
+        false,
+        "1",
+      ]);
     });
 
     it("returns 404 for a category that does not exist", async () => {
@@ -193,14 +195,12 @@ describe("GET /api/categories/:name", () => {
       {
         id: 1,
         name: "Books",
-        description: "Reading materials",
         type: "service",
         is_active: true,
       },
       {
         id: 2,
         name: "Bookshop",
-        description: "Book sales",
         type: "service",
         is_active: true,
       },
@@ -234,6 +234,61 @@ describe("GET /api/categories/:name", () => {
       .set("Cookie", accessCookie("staff"));
 
     expect(response.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/categories", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("creates a category using its name and type", async () => {
+    const category = {
+      id: 5,
+      name: "Student Services",
+      type: "service",
+      is_active: true,
+    };
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [category] });
+
+    const response = await request(app)
+      .post("/api/categories")
+      .set("Cookie", accessCookie("admin"))
+      .send({ name: category.name, type: category.type });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(category);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query.mock.calls[1][0]).toContain(
+      "INSERT INTO categories (name, type)",
+    );
+    expect(pool.query.mock.calls[1][1]).toEqual([
+      category.name,
+      category.type,
+    ]);
+  });
+
+  it("rejects invalid input and requires administrator access", async () => {
+    const invalid = await request(app)
+      .post("/api/categories")
+      .set("Cookie", accessCookie("admin"))
+      .send({ name: "Student Services" });
+    const unauthenticated = await request(app)
+      .post("/api/categories")
+      .send({ name: "Student Services", type: "service" });
+    const staff = await request(app)
+      .post("/api/categories")
+      .set("Cookie", accessCookie("staff"))
+      .send({ name: "Student Services", type: "service" });
+
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.errors).toBeDefined();
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
     expect(pool.query).not.toHaveBeenCalled();
   });
 });

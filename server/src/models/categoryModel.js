@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 export const getAllCategories = async () => {
   const result = await pool.query(
-    `SELECT id, name, description, type, is_active
+    `SELECT id, name, type, is_active
     FROM categories`,
   );
 
@@ -11,7 +11,7 @@ export const getAllCategories = async () => {
 
 export const getCategoryByName = async (name) => {
   const result = await pool.query(
-    `SELECT id, name, description, type, is_active
+    `SELECT id, name, type, is_active
     FROM categories
     WHERE name = $1`,
     [name],
@@ -22,7 +22,7 @@ export const getCategoryByName = async (name) => {
 
 export const searchCategoriesByName = async (name) => {
   const result = await pool.query(
-    `SELECT id, name, description, type, is_active
+    `SELECT id, name, type, is_active
     FROM categories
     WHERE POSITION($1 IN name) > 0`,
     [name],
@@ -31,12 +31,12 @@ export const searchCategoriesByName = async (name) => {
   return result.rows;
 };
 
-export const insertCategory = async (name, description, type) => {
+export const insertCategory = async (name, type) => {
   const result = await pool.query(
-    `INSERT INTO categories (name, description, type)
-    VALUES ($1, $2, $3)
-    RETURNING id, name, description, type, is_active`,
-    [name, description, type],
+    `INSERT INTO categories (name, type)
+    VALUES ($1, $2)
+    RETURNING id, name, type, is_active`,
+    [name, type],
   );
 
   return result.rows[0];
@@ -45,7 +45,6 @@ export const insertCategory = async (name, description, type) => {
 export const updateCategory = async ({
   categoryId,
   name,
-  description,
   type,
   isActive,
 }) => {
@@ -55,11 +54,6 @@ export const updateCategory = async ({
   if (name !== undefined) {
     values.push(name);
     updates.push(`name = $${values.length}`);
-  }
-
-  if (description !== undefined) {
-    values.push(description);
-    updates.push(`description = $${values.length}`);
   }
 
   if (type !== undefined) {
@@ -78,7 +72,7 @@ export const updateCategory = async ({
     `UPDATE categories
     SET ${updates.join(", ")}
     WHERE id = $${values.length}
-    RETURNING id, name, description, type, is_active`,
+    RETURNING id, name, type, is_active`,
     values,
   );
 
@@ -89,7 +83,7 @@ export const deleteCategory = async (categoryId) => {
   const result = await pool.query(
     `DELETE FROM categories
     WHERE id = $1
-    RETURNING id, name, description, type, is_active`,
+    RETURNING id, name, type, is_active`,
     [categoryId],
   );
 

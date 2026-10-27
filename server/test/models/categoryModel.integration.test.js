@@ -23,7 +23,6 @@ describe("category model integration", () => {
       `CREATE TEMPORARY TABLE categories (
         id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         name character varying NOT NULL UNIQUE,
-        description text NOT NULL,
         type character varying NOT NULL,
         is_active boolean DEFAULT true NOT NULL
       )`,
@@ -51,7 +50,7 @@ describe("category model integration", () => {
     ];
 
     for (const name of names) {
-      await categoryModel.insertCategory(name, "Integration test", "service");
+      await categoryModel.insertCategory(name, "service");
     }
 
     const matches = await categoryModel.searchCategoriesByName(`${key}%_Book`);
@@ -70,37 +69,34 @@ describe("category model integration", () => {
   it("updates only supplied fields and enforces unique names", async () => {
     const first = await categoryModel.insertCategory(
       `First ${randomUUID()}`,
-      "Original description",
       "service",
     );
     const second = await categoryModel.insertCategory(
       `Second ${randomUUID()}`,
-      "Other description",
       "policy",
     );
 
     const updated = await categoryModel.updateCategory({
       categoryId: first.id,
-      description: "Updated description",
+      name: `Updated ${first.name}`,
       isActive: false,
     });
 
     expect(updated).toEqual({
       id: first.id,
-      name: first.name,
-      description: "Updated description",
+      name: `Updated ${first.name}`,
       type: "service",
       is_active: false,
     });
-    expect(await categoryModel.getCategoryByName(first.name)).toEqual(updated);
+    expect(await categoryModel.getCategoryByName(updated.name)).toEqual(updated);
     const renamed = await categoryModel.updateCategory({
       categoryId: first.id,
-      name: `${first.name} renamed`,
+      name: `${updated.name} renamed`,
       type: "policy",
     });
     expect(renamed).toEqual({
       ...updated,
-      name: `${first.name} renamed`,
+      name: `${updated.name} renamed`,
       type: "policy",
     });
     expect(await categoryModel.getCategoryByName(renamed.name)).toEqual(renamed);

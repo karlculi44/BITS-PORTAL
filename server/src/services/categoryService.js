@@ -13,9 +13,9 @@ export const searchCategoriesByName = async (name) => {
   return await categoryModel.searchCategoriesByName(name);
 };
 
-export const createCategory = async (name, description, type) => {
+export const createCategory = async (name, type) => {
   try {
-    return await categoryModel.insertCategory(name, description, type);
+    return await categoryModel.insertCategory(name, type);
   } catch (error) {
     if (error.code === "23505") {
       throw new AppError("Category already exists", 409);

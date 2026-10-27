@@ -30,11 +30,23 @@ CREATE TABLE public.refresh_tokens (
 CREATE TABLE public.categories (
   id integer GENERATED ALWAYS AS IDENTITY,
   name character varying NOT NULL,
-  description text NOT NULL,
   type character varying NOT NULL,
   is_active boolean DEFAULT true NOT NULL,
   CONSTRAINT categories_pkey PRIMARY KEY (id),
   CONSTRAINT categories_name_key UNIQUE (name)
+);
+
+CREATE TABLE public.policies (
+  id integer GENERATED ALWAYS AS IDENTITY,
+  category_id integer NOT NULL,
+  title character varying(255) NOT NULL,
+  description text,
+  file text NOT NULL,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT policies_pkey PRIMARY KEY (id),
+  CONSTRAINT policies_category_id_fkey
+    FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX idx_refresh_tokens_user_id
