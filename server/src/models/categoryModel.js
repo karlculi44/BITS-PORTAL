@@ -20,6 +20,17 @@ export const getCategoryByName = async (name) => {
   return result.rows[0];
 };
 
+export const searchCategoriesByName = async (name) => {
+  const result = await pool.query(
+    `SELECT id, name, description, type, is_active
+    FROM categories
+    WHERE POSITION($1 IN name) > 0`,
+    [name],
+  );
+
+  return result.rows;
+};
+
 export const insertCategory = async (name, description, type) => {
   const result = await pool.query(
     `INSERT INTO categories (name, description, type)

@@ -32,12 +32,9 @@ export const getAllCategories = asyncHandler(async (req, res) => {
   res.status(200).json(categories);
 });
 
-export const getCategoryByName = asyncHandler(async (req, res) => {
-  const category = await categoryService.getCategoryByName(req.params.name);
-
-  if (!category) {
-    throw new AppError("Category not found", 404);
-  }
-
-  res.status(200).json(category);
+export const searchCategoriesByName = asyncHandler(async (req, res) => {
+  const categories = await categoryService.searchCategoriesByName(
+    req.params.name,
+  );
+  res.status(200).json(categories);
 });

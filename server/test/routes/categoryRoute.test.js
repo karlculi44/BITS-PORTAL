@@ -24,35 +24,44 @@ describe("GET /api/categories/:name", () => {
     pool.query.mockReset();
   });
 
-  it("returns the category matching the requested name", async () => {
-    const category = {
-      id: 1,
-      name: "Books",
-      description: "Reading materials",
-      type: "service",
-      is_active: true,
-    };
-    pool.query.mockResolvedValueOnce({ rows: [category] });
+  it("returns all categories containing the requested name", async () => {
+    const categories = [
+      {
+        id: 1,
+        name: "Books",
+        description: "Reading materials",
+        type: "service",
+        is_active: true,
+      },
+      {
+        id: 2,
+        name: "Bookshop",
+        description: "Book sales",
+        type: "service",
+        is_active: true,
+      },
+    ];
+    pool.query.mockResolvedValueOnce({ rows: categories });
 
     const response = await request(app)
-      .get("/api/categories/Books")
+      .get("/api/categories/Book")
       .set("Cookie", accessCookie("admin"));
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(category);
-    expect(pool.query.mock.calls[0][0]).toContain("WHERE name = $1");
-    expect(pool.query.mock.calls[0][1]).toEqual(["Books"]);
+    expect(response.body).toEqual(categories);
+    expect(pool.query.mock.calls[0][0]).toContain("POSITION($1 IN name) > 0");
+    expect(pool.query.mock.calls[0][1]).toEqual(["Book"]);
   });
 
-  it("returns 404 when no category has the requested name", async () => {
+  it("returns an empty array when no category contains the requested name", async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
     const response = await request(app)
       .get("/api/categories/Unknown")
       .set("Cookie", accessCookie("admin"));
 
-    expect(response.status).toBe(404);
-    expect(response.body.message).toBe("Category not found");
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
   });
 
   it("does not allow staff to retrieve a category", async () => {

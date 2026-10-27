@@ -9,6 +9,10 @@ export const getCategoryByName = async (name) => {
   return await categoryModel.getCategoryByName(name);
 };
 
+export const searchCategoriesByName = async (name) => {
+  return await categoryModel.searchCategoriesByName(name);
+};
+
 export const createCategory = async (name, description, type) => {
   try {
     return await categoryModel.insertCategory(name, description, type);

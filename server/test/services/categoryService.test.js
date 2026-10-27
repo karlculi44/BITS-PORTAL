@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../src/models/categoryModel.js", () => ({
   getAllCategories: vi.fn(),
   getCategoryByName: vi.fn(),
+  searchCategoriesByName: vi.fn(),
   insertCategory: vi.fn(),
 }));
 
@@ -10,11 +11,13 @@ import * as categoryModel from "../../src/models/categoryModel.js";
 import {
   createCategory,
   getCategoryByName,
+  searchCategoriesByName,
 } from "../../src/services/categoryService.js";
 
 describe("categoryService", () => {
   beforeEach(() => {
     categoryModel.getCategoryByName.mockReset();
+    categoryModel.searchCategoriesByName.mockReset();
     categoryModel.insertCategory.mockReset();
   });
 
@@ -24,6 +27,14 @@ describe("categoryService", () => {
 
     await expect(getCategoryByName("Books")).resolves.toBe(category);
     expect(categoryModel.getCategoryByName).toHaveBeenCalledWith("Books");
+  });
+
+  it("returns all categories matching a name fragment", async () => {
+    const categories = [{ id: 1, name: "Books" }, { id: 2, name: "Bookshop" }];
+    categoryModel.searchCategoriesByName.mockResolvedValueOnce(categories);
+
+    await expect(searchCategoriesByName("Book")).resolves.toBe(categories);
+    expect(categoryModel.searchCategoriesByName).toHaveBeenCalledWith("Book");
   });
 
   it("creates a category through the model and returns the created record", async () => {
