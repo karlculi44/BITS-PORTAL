@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPolicyController,
+  getAllPoliciesController,
   updatePolicyController,
 } from "../controllers/policyController.js";
 import {
@@ -12,6 +13,8 @@ import authorize from "../middlewares/authorize.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
+
+router.get("/", getAllPoliciesController);
 
 router.post(
   "/",

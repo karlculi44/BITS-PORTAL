@@ -23,6 +23,58 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+describe("GET /api/policies", () => {
+  beforeEach(() => {
+    pool.query.mockReset();
+  });
+
+  it.each([
+    ["public", undefined],
+    ["admin", "admin"],
+  ])("returns policies to %s callers", async (caller, role) => {
+    const policies = [
+      {
+        id: 5,
+        category_id: 11,
+        title: "Student Handbook",
+        description: null,
+        file: "https://example.com/handbook.pdf",
+      },
+    ];
+    pool.query.mockResolvedValueOnce({ rows: policies });
+
+    let response = request(app).get("/api/policies");
+    if (role) {
+      response = response.set("Cookie", accessCookie(role));
+    }
+
+    const result = await response;
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual(policies);
+    expect(pool.query).toHaveBeenCalledOnce();
+    expect(pool.query.mock.calls[0][0]).toContain("FROM policies");
+  });
+
+  it("returns an empty array when there are no policies", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app).get("/api/policies");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+
+  it("uses the existing error response for database failures", async () => {
+    pool.query.mockRejectedValueOnce(new Error("Database unavailable"));
+
+    const response = await request(app).get("/api/policies");
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("Internal Server Error");
+  });
+});
+
 describe("POST /api/policies", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;

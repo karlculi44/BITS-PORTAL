@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/models/policyModel.js", () => ({
+  getAllPolicies: vi.fn(),
   getCategoryById: vi.fn(),
   insertPolicy: vi.fn(),
   updatePolicy: vi.fn(),
@@ -9,6 +10,7 @@ vi.mock("../../src/models/policyModel.js", () => ({
 import * as policyModel from "../../src/models/policyModel.js";
 import {
   createPolicy,
+  getAllPolicies,
   updatePolicy,
 } from "../../src/services/policyService.js";
 
@@ -21,9 +23,18 @@ const policyInput = {
 
 describe("policyService", () => {
   beforeEach(() => {
+    policyModel.getAllPolicies.mockReset();
     policyModel.getCategoryById.mockReset();
     policyModel.insertPolicy.mockReset();
     policyModel.updatePolicy.mockReset();
+  });
+
+  it("returns all policies from the model", async () => {
+    const policies = [{ id: 5, title: "Student Handbook" }];
+    policyModel.getAllPolicies.mockResolvedValueOnce(policies);
+
+    await expect(getAllPolicies()).resolves.toBe(policies);
+    expect(policyModel.getAllPolicies).toHaveBeenCalledOnce();
   });
 
   it("creates a policy under an existing policy category", async () => {

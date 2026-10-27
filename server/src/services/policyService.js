@@ -1,6 +1,10 @@
 import * as policyModel from "../models/policyModel.js";
 import AppError from "../utils/AppError.js";
 
+export const getAllPolicies = async () => {
+  return await policyModel.getAllPolicies();
+};
+
 export const createPolicy = async (policy) => {
   const category = await policyModel.getCategoryById(policy.category_id);
 

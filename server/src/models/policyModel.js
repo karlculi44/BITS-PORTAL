@@ -11,6 +11,16 @@ export const getCategoryById = async (categoryId) => {
   return result.rows[0];
 };
 
+export const getAllPolicies = async () => {
+  const result = await pool.query(
+    `SELECT id, category_id, title, description, file, created_at, updated_at
+    FROM policies
+    ORDER BY id ASC`,
+  );
+
+  return result.rows;
+};
+
 export const insertPolicy = async ({
   title,
   description,

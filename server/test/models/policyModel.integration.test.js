@@ -84,6 +84,32 @@ describe("policyModel integration", () => {
     expect(policy.description).toBe("Academic guidelines");
   });
 
+  it("returns all policies in a stable order", async () => {
+    const first = await policyModel.insertPolicy({
+      title: "First Policy",
+      file: "https://example.com/first-policy.pdf",
+      category_id: 11,
+    });
+    const second = await policyModel.insertPolicy({
+      title: "Second Policy",
+      file: "https://example.com/second-policy.pdf",
+      category_id: 11,
+    });
+
+    const policies = await policyModel.getAllPolicies();
+
+    const listedPolicies = policies.filter(({ id }) =>
+      [first.id, second.id].includes(id),
+    );
+    expect(listedPolicies.map(({ id }) => id)).toEqual([first.id, second.id]);
+    expect(listedPolicies[0]).toMatchObject({
+      title: "First Policy",
+      category_id: 11,
+      description: null,
+      file: "https://example.com/first-policy.pdf",
+    });
+  });
+
   it("does not insert for missing or non-policy categories", async () => {
     const input = {
       title: "Not inserted",
