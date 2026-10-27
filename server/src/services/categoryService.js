@@ -36,3 +36,7 @@ export const updateCategory = async (category) => {
     throw error;
   }
 };
+
+export const deleteCategory = async (categoryId) => {
+  return await categoryModel.deleteCategory(categoryId);
+};

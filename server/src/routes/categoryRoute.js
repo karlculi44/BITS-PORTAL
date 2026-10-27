@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createCategory,
+  deleteCategory,
   getAllCategories,
   searchCategoriesByName,
   updateCategory,
@@ -33,5 +34,7 @@ router.patch(
   authorize("admin"),
   updateCategory,
 );
+
+router.delete("/:id", verifyToken, authorize("admin"), deleteCategory);
 
 export default router;

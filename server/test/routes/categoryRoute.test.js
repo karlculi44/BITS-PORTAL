@@ -24,6 +24,71 @@ describe("GET /api/categories/:name", () => {
     pool.query.mockReset();
   });
 
+  describe("DELETE /api/categories/:id", () => {
+    beforeEach(() => {
+      process.env.JWT_ACCESS_SECRET = accessSecret;
+      pool.query.mockReset();
+    });
+
+    it("deletes a category and returns the deleted record", async () => {
+      const category = {
+        id: 1,
+        name: "Books",
+        description: "Reading materials",
+        type: "service",
+        is_active: true,
+      };
+      pool.query.mockResolvedValueOnce({ rows: [category] });
+
+      const response = await request(app)
+        .delete("/api/categories/1")
+        .set("Cookie", accessCookie("admin"));
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        message: "Category deleted successfully",
+        data: category,
+      });
+      expect(pool.query.mock.calls[0][0]).toContain("DELETE FROM categories");
+      expect(pool.query.mock.calls[0][1]).toEqual(["1"]);
+    });
+
+    it("returns 404 when the category does not exist", async () => {
+      pool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .delete("/api/categories/999")
+        .set("Cookie", accessCookie("admin"));
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe("Category not found");
+    });
+
+    it.each(["invalid", "0", "2147483648"])(
+      "rejects invalid category ID %s",
+      async (id) => {
+        const response = await request(app)
+          .delete(`/api/categories/${id}`)
+          .set("Cookie", accessCookie("admin"));
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe("Invalid category ID");
+        expect(pool.query).not.toHaveBeenCalled();
+      },
+    );
+
+    it("requires authentication and admin access", async () => {
+      const unauthenticated = await request(app).delete("/api/categories/1");
+      const staff = await request(app)
+        .delete("/api/categories/1")
+        .set("Cookie", accessCookie("staff"));
+
+      expect(unauthenticated.status).toBe(401);
+      expect(staff.status).toBe(403);
+      expect(pool.query).not.toHaveBeenCalled();
+    });
+  });
+
   describe("PATCH /api/categories/:id", () => {
     beforeEach(() => {
       process.env.JWT_ACCESS_SECRET = accessSecret;

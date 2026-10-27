@@ -117,4 +117,17 @@ describe("category model integration", () => {
       }),
     ).toBeUndefined();
   });
+
+  it("deletes a category and returns the deleted record", async () => {
+    const category = await categoryModel.insertCategory(
+      `Delete ${randomUUID()}`,
+      "To delete",
+      "service",
+    );
+
+    await expect(categoryModel.deleteCategory(category.id)).resolves.toEqual(
+      category,
+    );
+    await expect(categoryModel.deleteCategory(category.id)).resolves.toBeUndefined();
+  });
 });

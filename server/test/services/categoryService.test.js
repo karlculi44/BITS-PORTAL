@@ -6,6 +6,7 @@ vi.mock("../../src/models/categoryModel.js", () => ({
   searchCategoriesByName: vi.fn(),
   insertCategory: vi.fn(),
   updateCategory: vi.fn(),
+  deleteCategory: vi.fn(),
 }));
 
 import * as categoryModel from "../../src/models/categoryModel.js";
@@ -14,6 +15,7 @@ import {
   getCategoryByName,
   searchCategoriesByName,
   updateCategory,
+  deleteCategory,
 } from "../../src/services/categoryService.js";
 
 describe("categoryService", () => {
@@ -22,6 +24,7 @@ describe("categoryService", () => {
     categoryModel.searchCategoriesByName.mockReset();
     categoryModel.insertCategory.mockReset();
     categoryModel.updateCategory.mockReset();
+    categoryModel.deleteCategory.mockReset();
   });
 
   it("looks up a category by name through the model", async () => {
@@ -109,5 +112,13 @@ describe("categoryService", () => {
     await expect(
       updateCategory({ categoryId: "1", name: "Books" }),
     ).rejects.toBe(error);
+  });
+
+  it("deletes a category through the model", async () => {
+    const category = { id: 1, name: "Books" };
+    categoryModel.deleteCategory.mockResolvedValueOnce(category);
+
+    await expect(deleteCategory("1")).resolves.toBe(category);
+    expect(categoryModel.deleteCategory).toHaveBeenCalledWith("1");
   });
 });

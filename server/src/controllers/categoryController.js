@@ -57,3 +57,22 @@ export const updateCategory = asyncHandler(async (req, res) => {
 
   res.status(200).json(category);
 });
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid category ID", 400);
+  }
+
+  const category = await categoryService.deleteCategory(id);
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  res.status(200).json({
+    message: "Category deleted successfully",
+    data: category,
+  });
+});
