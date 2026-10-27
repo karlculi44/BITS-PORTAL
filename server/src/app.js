@@ -7,6 +7,7 @@ import userRoute from "./routes/userRoute.js";
 import authRoute from "./routes/authRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
 import officeServiceRoute from "./routes/officeServiceRoute.js";
+import policyRoute from "./routes/policyRoute.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -48,6 +49,9 @@ app.use("/api/categories", categoryRoute);
 
 // office service routes
 app.use("/api/services", officeServiceRoute);
+
+// policy routes
+app.use("/api/policies", policyRoute);
 
 // Error handler
 app.use(errorHandler);
