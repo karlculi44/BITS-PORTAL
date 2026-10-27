@@ -27,5 +27,15 @@ CREATE TABLE public.refresh_tokens (
     FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE public.categories (
+  id integer GENERATED ALWAYS AS IDENTITY,
+  name character varying NOT NULL,
+  description text NOT NULL,
+  type character varying NOT NULL,
+  is_active boolean DEFAULT true NOT NULL,
+  CONSTRAINT categories_pkey PRIMARY KEY (id),
+  CONSTRAINT categories_name_key UNIQUE (name)
+);
+
 CREATE INDEX idx_refresh_tokens_user_id
   ON public.refresh_tokens USING btree (user_id);

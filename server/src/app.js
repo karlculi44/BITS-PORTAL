@@ -5,6 +5,7 @@ import helmet from "helmet";
 import pool from "./config/db.js";
 import userRoute from "./routes/userRoute.js";
 import authRoute from "./routes/authRoute.js";
+import categoryRoute from "./routes/categoryRoute.js";
 import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -40,6 +41,9 @@ app.use("/api/users", userRoute);
 
 // auth route
 app.use("/api/auth", authRoute);
+
+// category routes
+app.use("/api/categories", categoryRoute);
 
 // Error handler
 app.use(errorHandler);

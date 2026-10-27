@@ -1,0 +1,32 @@
+import pool from "../config/db.js";
+
+export const getAllCategories = async () => {
+  const result = await pool.query(
+    `SELECT id, name, description, type, is_active
+    FROM categories`,
+  );
+
+  return result.rows;
+};
+
+export const getCategoryByName = async (name) => {
+  const result = await pool.query(
+    `SELECT id, name, description, type, is_active
+    FROM categories
+    WHERE name = $1`,
+    [name],
+  );
+
+  return result.rows[0];
+};
+
+export const insertCategory = async (name, description, type) => {
+  const result = await pool.query(
+    `INSERT INTO categories (name, description, type)
+    VALUES ($1, $2, $3)
+    RETURNING id, name, description, type, is_active`,
+    [name, description, type],
+  );
+
+  return result.rows[0];
+};
