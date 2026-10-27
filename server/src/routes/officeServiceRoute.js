@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createServiceController,
+  searchServicesController,
   updateServiceController,
 } from "../controllers/serviceController.js";
 import {
@@ -12,6 +13,8 @@ import authorize from "../middlewares/authorize.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
+
+router.get("/search/:term", searchServicesController);
 
 router.post(
   "/",

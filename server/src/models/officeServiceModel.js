@@ -46,6 +46,18 @@ export const insertService = async ({
   return result.rows[0];
 };
 
+export const searchServices = async (term) => {
+  const result = await pool.query(
+    `SELECT id, title, url, image, description, sort_order, category_id, created_at, updated_at
+    FROM services
+    WHERE POSITION($1 IN title) > 0
+      OR POSITION($1 IN description) > 0`,
+    [term],
+  );
+
+  return result.rows;
+};
+
 export const updateService = async (serviceId, service) => {
   const updates = [];
   const values = [];

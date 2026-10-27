@@ -43,6 +43,10 @@ export const createService = async (service) => {
   }
 };
 
+export const searchServices = async (term) => {
+  return await officeServiceModel.searchServices(term);
+};
+
 export const updateService = async (serviceId, service) => {
   const validateCategory = async () => {
     const category = await officeServiceModel.getCategoryById(

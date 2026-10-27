@@ -134,6 +134,35 @@ describe("officeServiceModel integration", () => {
     });
   });
 
+  it("searches literal substrings in both title and description", async () => {
+    const term = "SearchTerm";
+    const titleMatch = await officeServiceModel.insertService({
+      title: `${term} service`,
+      url: "https://example.com/search-title",
+      description: "A title match",
+      category_id: 10,
+    });
+    const descriptionMatch = await officeServiceModel.insertService({
+      title: "A description match",
+      url: "https://example.com/search-description",
+      description: `Details about ${term}`,
+      category_id: 10,
+    });
+    await officeServiceModel.insertService({
+      title: "Not matching",
+      url: "https://example.com/search-none",
+      description: "Still not matching",
+      category_id: 10,
+    });
+
+    const matches = await officeServiceModel.searchServices(term);
+    expect(matches.map((service) => service.id).sort()).toEqual(
+      [titleMatch.id, descriptionMatch.id].sort(),
+    );
+    expect(await officeServiceModel.searchServices("MissingTerm")).toEqual([]);
+    expect(await officeServiceModel.searchServices("searchterm")).toEqual([]);
+  });
+
   it("only updates the category to an existing service category", async () => {
     const created = await officeServiceModel.insertService({
       title: "Category update",

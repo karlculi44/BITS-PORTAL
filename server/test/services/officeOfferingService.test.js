@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../src/models/officeServiceModel.js", () => ({
   getCategoryById: vi.fn(),
   insertService: vi.fn(),
+  searchServices: vi.fn(),
   updateService: vi.fn(),
 }));
 
 import * as officeServiceModel from "../../src/models/officeServiceModel.js";
 import {
   createService,
+  searchServices,
   updateService,
 } from "../../src/services/officeOfferingService.js";
 
@@ -24,6 +26,7 @@ describe("officeOfferingService", () => {
   beforeEach(() => {
     officeServiceModel.getCategoryById.mockReset();
     officeServiceModel.insertService.mockReset();
+    officeServiceModel.searchServices.mockReset();
     officeServiceModel.updateService.mockReset();
   });
 
@@ -93,6 +96,16 @@ describe("officeOfferingService", () => {
     officeServiceModel.getCategoryById.mockRejectedValueOnce(error);
 
     await expect(createService(serviceInput)).rejects.toBe(error);
+  });
+
+  it("returns matching services from the model", async () => {
+    const services = [{ id: 8, title: "Transcript Request" }];
+    officeServiceModel.searchServices.mockResolvedValueOnce(services);
+
+    await expect(searchServices("transcript")).resolves.toBe(services);
+    expect(officeServiceModel.searchServices).toHaveBeenCalledWith(
+      "transcript",
+    );
   });
 
   it("updates a service without requiring category validation when category is unchanged", async () => {

@@ -389,3 +389,66 @@ describe("PATCH /api/services/:id", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 });
+
+describe("GET /api/services/search/:term", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("returns services matching the term in their title or description", async () => {
+    const services = [
+      { id: 3, title: "Transcript", description: "Request a copy" },
+      { id: 4, title: "Enrollment", description: "Transcript services" },
+    ];
+    pool.query.mockResolvedValueOnce({ rows: services });
+
+    const response = await request(app)
+      .get("/api/services/search/transcript")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(services);
+    expect(pool.query.mock.calls[0][0]).toContain(
+      "POSITION($1 IN title) > 0",
+    );
+    expect(pool.query.mock.calls[0][0]).toContain(
+      "POSITION($1 IN description) > 0",
+    );
+    expect(pool.query.mock.calls[0][1]).toEqual(["transcript"]);
+  });
+
+  it("returns an empty array when there are no matches", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .get("/api/services/search/missing")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+
+  it("rejects a whitespace-only search term", async () => {
+    const response = await request(app)
+      .get("/api/services/search/%20%20")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe("Search term is required");
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication and admin authorization", async () => {
+    const unauthenticated = await request(app).get(
+      "/api/services/search/transcript",
+    );
+    const staff = await request(app)
+      .get("/api/services/search/transcript")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});

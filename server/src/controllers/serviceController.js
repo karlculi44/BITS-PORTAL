@@ -11,6 +11,17 @@ export const createServiceController = asyncHandler(async (req, res) => {
   });
 });
 
+export const searchServicesController = asyncHandler(async (req, res) => {
+  const { term } = req.params;
+
+  if (!term.trim()) {
+    throw new AppError("Search term is required", 400);
+  }
+
+  const services = await officeOfferingService.searchServices(term);
+  res.status(200).json(services);
+});
+
 export const updateServiceController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
