@@ -15,7 +15,7 @@ const [{ default: modelPool }, categoryModel] = await Promise.all([
 
 let client;
 
-describe("category name lookup integration", () => {
+describe("category model integration", () => {
   beforeAll(async () => {
     await verifyTestDatabase();
     client = await modelPool.connect();
@@ -65,5 +65,56 @@ describe("category name lookup integration", () => {
     expect(await categoryModel.getCategoryByName(names[0])).toMatchObject({
       name: names[0],
     });
+  });
+
+  it("updates only supplied fields and enforces unique names", async () => {
+    const first = await categoryModel.insertCategory(
+      `First ${randomUUID()}`,
+      "Original description",
+      "service",
+    );
+    const second = await categoryModel.insertCategory(
+      `Second ${randomUUID()}`,
+      "Other description",
+      "policy",
+    );
+
+    const updated = await categoryModel.updateCategory({
+      categoryId: first.id,
+      description: "Updated description",
+      isActive: false,
+    });
+
+    expect(updated).toEqual({
+      id: first.id,
+      name: first.name,
+      description: "Updated description",
+      type: "service",
+      is_active: false,
+    });
+    expect(await categoryModel.getCategoryByName(first.name)).toEqual(updated);
+    const renamed = await categoryModel.updateCategory({
+      categoryId: first.id,
+      name: `${first.name} renamed`,
+      type: "policy",
+    });
+    expect(renamed).toEqual({
+      ...updated,
+      name: `${first.name} renamed`,
+      type: "policy",
+    });
+    expect(await categoryModel.getCategoryByName(renamed.name)).toEqual(renamed);
+    await expect(
+      categoryModel.updateCategory({ categoryId: first.id, name: renamed.name }),
+    ).resolves.toEqual(renamed);
+    await expect(
+      categoryModel.updateCategory({ categoryId: first.id, name: second.name }),
+    ).rejects.toMatchObject({ code: "23505" });
+    expect(
+      await categoryModel.updateCategory({
+        categoryId: 2147483647,
+        type: "policy",
+      }),
+    ).toBeUndefined();
   });
 });

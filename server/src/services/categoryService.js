@@ -24,3 +24,15 @@ export const createCategory = async (name, description, type) => {
     throw error;
   }
 };
+
+export const updateCategory = async (category) => {
+  try {
+    return await categoryModel.updateCategory(category);
+  } catch (error) {
+    if (error.code === "23505") {
+      throw new AppError("Category already exists", 409);
+    }
+
+    throw error;
+  }
+};

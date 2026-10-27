@@ -5,6 +5,7 @@ vi.mock("../../src/models/categoryModel.js", () => ({
   getCategoryByName: vi.fn(),
   searchCategoriesByName: vi.fn(),
   insertCategory: vi.fn(),
+  updateCategory: vi.fn(),
 }));
 
 import * as categoryModel from "../../src/models/categoryModel.js";
@@ -12,6 +13,7 @@ import {
   createCategory,
   getCategoryByName,
   searchCategoriesByName,
+  updateCategory,
 } from "../../src/services/categoryService.js";
 
 describe("categoryService", () => {
@@ -19,6 +21,7 @@ describe("categoryService", () => {
     categoryModel.getCategoryByName.mockReset();
     categoryModel.searchCategoriesByName.mockReset();
     categoryModel.insertCategory.mockReset();
+    categoryModel.updateCategory.mockReset();
   });
 
   it("looks up a category by name through the model", async () => {
@@ -74,6 +77,37 @@ describe("categoryService", () => {
 
     await expect(
       createCategory("Books", "Reading materials", "service"),
+    ).rejects.toBe(error);
+  });
+
+  it("passes category updates through to the model", async () => {
+    const update = { categoryId: "1", description: "Updated", isActive: false };
+    const category = {
+      id: 1,
+      name: "Books",
+      description: "Updated",
+      type: "service",
+      is_active: false,
+    };
+    categoryModel.updateCategory.mockResolvedValueOnce(category);
+
+    await expect(updateCategory(update)).resolves.toBe(category);
+    expect(categoryModel.updateCategory).toHaveBeenCalledWith(update);
+  });
+
+  it("maps duplicate names during updates and rethrows other errors", async () => {
+    categoryModel.updateCategory.mockRejectedValueOnce({ code: "23505" });
+    await expect(
+      updateCategory({ categoryId: "1", name: "Books" }),
+    ).rejects.toMatchObject({
+      message: "Category already exists",
+      statusCode: 409,
+    });
+
+    const error = new Error("Database unavailable");
+    categoryModel.updateCategory.mockRejectedValueOnce(error);
+    await expect(
+      updateCategory({ categoryId: "1", name: "Books" }),
     ).rejects.toBe(error);
   });
 });

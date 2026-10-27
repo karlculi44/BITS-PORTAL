@@ -38,3 +38,22 @@ export const searchCategoriesByName = asyncHandler(async (req, res) => {
   );
   res.status(200).json(categories);
 });
+
+export const updateCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid category ID", 400);
+  }
+
+  const category = await categoryService.updateCategory({
+    categoryId: id,
+    ...req.body,
+  });
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  res.status(200).json(category);
+});

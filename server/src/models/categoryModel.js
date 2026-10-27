@@ -41,3 +41,46 @@ export const insertCategory = async (name, description, type) => {
 
   return result.rows[0];
 };
+
+export const updateCategory = async ({
+  categoryId,
+  name,
+  description,
+  type,
+  isActive,
+}) => {
+  const updates = [];
+  const values = [];
+
+  if (name !== undefined) {
+    values.push(name);
+    updates.push(`name = $${values.length}`);
+  }
+
+  if (description !== undefined) {
+    values.push(description);
+    updates.push(`description = $${values.length}`);
+  }
+
+  if (type !== undefined) {
+    values.push(type);
+    updates.push(`type = $${values.length}`);
+  }
+
+  if (isActive !== undefined) {
+    values.push(isActive);
+    updates.push(`is_active = $${values.length}`);
+  }
+
+  values.push(categoryId);
+
+  const result = await pool.query(
+    `UPDATE categories
+    SET ${updates.join(", ")}
+    WHERE id = $${values.length}
+    RETURNING id, name, description, type, is_active`,
+    values,
+  );
+
+  return result.rows[0];
+};

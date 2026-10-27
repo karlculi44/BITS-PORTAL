@@ -3,8 +3,12 @@ import {
   createCategory,
   getAllCategories,
   searchCategoriesByName,
+  updateCategory,
 } from "../controllers/categoryController.js";
-import { createCategorySchema } from "../schemas/categorySchema.js";
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from "../schemas/categorySchema.js";
 import validate from "../middlewares/validate.js";
 import authorize from "../middlewares/authorize.js";
 import verifyToken from "../middlewares/verifyToken.js";
@@ -20,6 +24,14 @@ router.post(
   verifyToken,
   authorize("admin"),
   createCategory,
+);
+
+router.patch(
+  "/:id",
+  validate(updateCategorySchema),
+  verifyToken,
+  authorize("admin"),
+  updateCategory,
 );
 
 export default router;
