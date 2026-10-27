@@ -142,3 +142,173 @@ describe("POST /api/policies", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 });
+
+describe("PATCH /api/policies/:id", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("updates only supplied fields and returns the policy", async () => {
+    const policy = {
+      id: 5,
+      category_id: 11,
+      title: "Updated Handbook",
+      description: "Guidelines for students",
+      file: "https://example.com/handbook.pdf",
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-02-01T00:00:00.000Z",
+    };
+    pool.query.mockResolvedValueOnce({ rows: [policy] });
+
+    const response = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ title: "Updated Handbook" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "Policy updated successfully",
+      data: policy,
+    });
+    const [query, values] = pool.query.mock.calls[0];
+    expect(query).toContain("SET title = $1, updated_at = CURRENT_TIMESTAMP");
+    expect(query).not.toContain("description =");
+    expect(query).not.toContain("file =");
+    expect(query).not.toContain("category_id =");
+    expect(values).toEqual(["Updated Handbook", "5"]);
+  });
+
+  it("allows clearing the nullable description", async () => {
+    const policy = { id: 5, description: null };
+    pool.query.mockResolvedValueOnce({ rows: [policy] });
+
+    const response = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ description: null });
+
+    expect(response.status).toBe(200);
+    expect(pool.query.mock.calls[0][0]).toContain("description = $1");
+    expect(pool.query.mock.calls[0][1]).toEqual([null, "5"]);
+  });
+
+  it("validates a replacement category before updating", async () => {
+    const policy = { id: 5, category_id: 12 };
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 12, type: "policy" }] })
+      .mockResolvedValueOnce({ rows: [policy] });
+
+    const response = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 12 });
+
+    expect(response.status).toBe(200);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query.mock.calls[1][0]).toContain("type = 'policy'");
+    expect(pool.query.mock.calls[1][0]).toContain("FOR SHARE");
+    expect(pool.query.mock.calls[1][1]).toEqual([12, "5"]);
+  });
+
+  it("rejects nonexistent and service categories", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 10, type: "service" }] });
+
+    const missingCategory = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 12 });
+    expect(missingCategory.status).toBe(404);
+    expect(missingCategory.body.message).toBe("Category not found");
+    expect(pool.query).toHaveBeenCalledTimes(1);
+
+    pool.query.mockReset();
+    pool.query.mockResolvedValueOnce({ rows: [{ id: 10, type: "service" }] });
+    const serviceCategory = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 10 });
+    expect(serviceCategory.status).toBe(400);
+    expect(serviceCategory.body.message).toBe(
+      "Category must be a policy category",
+    );
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 404 for a policy that does not exist", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .patch("/api/policies/99")
+      .set("Cookie", accessCookie("admin"))
+      .send({ title: "Updated Handbook" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Policy not found");
+  });
+
+  it("maps a category foreign-key race to not found", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 12, type: "policy" }] })
+      .mockRejectedValueOnce({ code: "23503" });
+
+    const response = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 12 });
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Category not found");
+  });
+
+  it("rejects invalid IDs and invalid or empty updates", async () => {
+    for (const id of ["invalid", "0", "2147483648"]) {
+      const response = await request(app)
+        .patch(`/api/policies/${id}`)
+        .set("Cookie", accessCookie("admin"))
+        .send({ title: "Updated Handbook" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Invalid policy ID");
+    }
+
+    for (const body of [
+      {},
+      { title: "" },
+      { title: 5 },
+      { file: "" },
+      { file: 5 },
+      { description: 5 },
+      { category_id: 0 },
+      { category_id: 1.5 },
+      { category_id: "11" },
+      { unknown: "field" },
+    ]) {
+      const response = await request(app)
+        .patch("/api/policies/5")
+        .set("Cookie", accessCookie("admin"))
+        .send(body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+    }
+
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication and admin authorization", async () => {
+    const unauthenticated = await request(app)
+      .patch("/api/policies/5")
+      .send({ title: "Updated Handbook" });
+    const staff = await request(app)
+      .patch("/api/policies/5")
+      .set("Cookie", accessCookie("staff"))
+      .send({ title: "Updated Handbook" });
+
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});

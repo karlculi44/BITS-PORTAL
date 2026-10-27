@@ -40,3 +40,41 @@ export const createPolicy = async (policy) => {
     throw error;
   }
 };
+
+export const updatePolicy = async (policyId, policy) => {
+  const validateCategory = async () => {
+    const category = await policyModel.getCategoryById(policy.category_id);
+
+    if (!category) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (category.type !== "policy") {
+      throw new AppError("Category must be a policy category", 400);
+    }
+  };
+
+  if (policy.category_id !== undefined) {
+    await validateCategory();
+  }
+
+  try {
+    const updatedPolicy = await policyModel.updatePolicy(policyId, policy);
+
+    if (!updatedPolicy) {
+      if (policy.category_id !== undefined) {
+        await validateCategory();
+      }
+
+      throw new AppError("Policy not found", 404);
+    }
+
+    return updatedPolicy;
+  } catch (error) {
+    if (error.code === "23503") {
+      throw new AppError("Category not found", 404);
+    }
+
+    throw error;
+  }
+};

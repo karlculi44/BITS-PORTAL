@@ -96,4 +96,50 @@ describe("policyModel integration", () => {
       policyModel.insertPolicy({ ...input, category_id: 99 }),
     ).resolves.toBeUndefined();
   });
+
+  it("updates only supplied fields and preserves the remaining policy fields", async () => {
+    const created = await policyModel.insertPolicy({
+      title: "Original Handbook",
+      description: "Original guidelines",
+      file: "https://example.com/original-handbook.pdf",
+      category_id: 11,
+    });
+
+    const updated = await policyModel.updatePolicy(created.id, {
+      title: "Updated Handbook",
+    });
+
+    expect(updated).toMatchObject({
+      id: created.id,
+      category_id: created.category_id,
+      title: "Updated Handbook",
+      description: created.description,
+      file: created.file,
+    });
+  });
+
+  it("allows nullable description updates and only accepts policy categories", async () => {
+    const created = await policyModel.insertPolicy({
+      title: "Category Update Policy",
+      file: "https://example.com/category-update-policy.pdf",
+      category_id: 11,
+    });
+
+    const cleared = await policyModel.updatePolicy(created.id, {
+      description: null,
+    });
+    expect(cleared.description).toBeNull();
+
+    const moved = await policyModel.updatePolicy(created.id, {
+      category_id: 11,
+    });
+    expect(moved.category_id).toBe(11);
+
+    await expect(
+      policyModel.updatePolicy(created.id, { category_id: 10 }),
+    ).resolves.toBeUndefined();
+    await expect(
+      policyModel.updatePolicy(created.id, { category_id: 99 }),
+    ).resolves.toBeUndefined();
+  });
 });

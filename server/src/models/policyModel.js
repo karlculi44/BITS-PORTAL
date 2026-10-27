@@ -30,3 +30,69 @@ export const insertPolicy = async ({
 
   return result.rows[0];
 };
+
+export const updatePolicy = async (policyId, policy) => {
+  const updates = [];
+  const values = [];
+  let categoryIdIndex;
+
+  if (policy.title !== undefined) {
+    values.push(policy.title);
+    updates.push(`title = $${values.length}`);
+  }
+
+  if (policy.description !== undefined) {
+    values.push(policy.description);
+    updates.push(`description = $${values.length}`);
+  }
+
+  if (policy.file !== undefined) {
+    values.push(policy.file);
+    updates.push(`file = $${values.length}`);
+  }
+
+  if (policy.category_id !== undefined) {
+    values.push(policy.category_id);
+    categoryIdIndex = values.length;
+    updates.push(`category_id = $${values.length}`);
+  }
+
+  updates.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(policyId);
+
+  const query = categoryIdIndex === undefined
+    ? `UPDATE policies
+      SET ${updates.join(", ")}
+      WHERE id = $${values.length}
+      RETURNING
+        policies.id,
+        policies.category_id,
+        policies.title,
+        policies.description,
+        policies.file,
+        policies.created_at,
+        policies.updated_at`
+    : `WITH policy_category AS MATERIALIZED (
+        SELECT id
+        FROM categories
+        WHERE id = $${categoryIdIndex}
+          AND type = 'policy'
+        FOR SHARE
+      )
+      UPDATE policies
+      SET ${updates.join(", ")}
+      FROM policy_category
+      WHERE policies.id = $${values.length}
+      RETURNING
+        policies.id,
+        policies.category_id,
+        policies.title,
+        policies.description,
+        policies.file,
+        policies.created_at,
+        policies.updated_at`;
+
+  const result = await pool.query(query, values);
+
+  return result.rows[0];
+};

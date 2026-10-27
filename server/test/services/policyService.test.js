@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../src/models/policyModel.js", () => ({
   getCategoryById: vi.fn(),
   insertPolicy: vi.fn(),
+  updatePolicy: vi.fn(),
 }));
 
 import * as policyModel from "../../src/models/policyModel.js";
-import { createPolicy } from "../../src/services/policyService.js";
+import {
+  createPolicy,
+  updatePolicy,
+} from "../../src/services/policyService.js";
 
 const policyInput = {
   title: "Student Handbook",
@@ -19,6 +23,7 @@ describe("policyService", () => {
   beforeEach(() => {
     policyModel.getCategoryById.mockReset();
     policyModel.insertPolicy.mockReset();
+    policyModel.updatePolicy.mockReset();
   });
 
   it("creates a policy under an existing policy category", async () => {
@@ -87,5 +92,77 @@ describe("policyService", () => {
     policyModel.getCategoryById.mockRejectedValueOnce(error);
 
     await expect(createPolicy(policyInput)).rejects.toBe(error);
+  });
+
+  it("passes partial policy updates to the model", async () => {
+    const changes = { title: "Updated Handbook" };
+    const policy = { id: 5, ...policyInput, ...changes };
+    policyModel.updatePolicy.mockResolvedValueOnce(policy);
+
+    await expect(updatePolicy("5", changes)).resolves.toBe(policy);
+    expect(policyModel.getCategoryById).not.toHaveBeenCalled();
+    expect(policyModel.updatePolicy).toHaveBeenCalledWith("5", changes);
+  });
+
+  it("requires a changed category to be an existing policy category", async () => {
+    policyModel.getCategoryById.mockResolvedValueOnce(undefined);
+    await expect(
+      updatePolicy("5", { category_id: 12 }),
+    ).rejects.toMatchObject({
+      message: "Category not found",
+      statusCode: 404,
+    });
+    expect(policyModel.updatePolicy).not.toHaveBeenCalled();
+
+    policyModel.getCategoryById.mockResolvedValueOnce({
+      id: 10,
+      type: "service",
+    });
+    await expect(
+      updatePolicy("5", { category_id: 10 }),
+    ).rejects.toMatchObject({
+      message: "Category must be a policy category",
+      statusCode: 400,
+    });
+    expect(policyModel.updatePolicy).not.toHaveBeenCalled();
+  });
+
+  it("returns not found for missing policies and detects category type races", async () => {
+    policyModel.updatePolicy.mockResolvedValueOnce(undefined);
+    await expect(
+      updatePolicy("99", { title: "Updated" }),
+    ).rejects.toMatchObject({
+      message: "Policy not found",
+      statusCode: 404,
+    });
+
+    policyModel.getCategoryById
+      .mockResolvedValueOnce({ id: 11, type: "policy" })
+      .mockResolvedValueOnce({ id: 11, type: "service" });
+    policyModel.updatePolicy.mockResolvedValueOnce(undefined);
+    await expect(
+      updatePolicy("5", { category_id: 11 }),
+    ).rejects.toMatchObject({
+      message: "Category must be a policy category",
+      statusCode: 400,
+    });
+  });
+
+  it("maps category foreign-key races and rethrows unexpected update errors", async () => {
+    policyModel.getCategoryById.mockResolvedValueOnce({
+      id: 11,
+      type: "policy",
+    });
+    policyModel.updatePolicy.mockRejectedValueOnce({ code: "23503" });
+    await expect(
+      updatePolicy("5", { category_id: 11 }),
+    ).rejects.toMatchObject({
+      message: "Category not found",
+      statusCode: 404,
+    });
+
+    const error = new Error("Database unavailable");
+    policyModel.updatePolicy.mockRejectedValueOnce(error);
+    await expect(updatePolicy("5", { title: "Updated" })).rejects.toBe(error);
   });
 });
