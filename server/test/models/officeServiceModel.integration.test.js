@@ -108,4 +108,50 @@ describe("officeServiceModel integration", () => {
       officeServiceModel.insertService({ ...input, category_id: 99 }),
     ).resolves.toBeUndefined();
   });
+
+  it("updates only supplied fields and preserves the remaining service data", async () => {
+    const created = await officeServiceModel.insertService({
+      title: "Original title",
+      url: "https://example.com/original",
+      description: "Original description",
+      image: "https://example.com/original.png",
+      sort_order: 2,
+      category_id: 10,
+    });
+
+    const updated = await officeServiceModel.updateService(created.id, {
+      title: "Updated title",
+    });
+
+    expect(updated).toMatchObject({
+      id: created.id,
+      title: "Updated title",
+      url: created.url,
+      description: created.description,
+      image: created.image,
+      sort_order: created.sort_order,
+      category_id: created.category_id,
+    });
+  });
+
+  it("only updates the category to an existing service category", async () => {
+    const created = await officeServiceModel.insertService({
+      title: "Category update",
+      url: "https://example.com/category-update",
+      description: "Category update test",
+      category_id: 10,
+    });
+
+    const updated = await officeServiceModel.updateService(created.id, {
+      category_id: 10,
+    });
+    expect(updated.category_id).toBe(10);
+
+    await expect(
+      officeServiceModel.updateService(created.id, { category_id: 11 }),
+    ).resolves.toBeUndefined();
+    await expect(
+      officeServiceModel.updateService(created.id, { category_id: 99 }),
+    ).resolves.toBeUndefined();
+  });
 });

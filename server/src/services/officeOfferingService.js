@@ -42,3 +42,46 @@ export const createService = async (service) => {
     throw error;
   }
 };
+
+export const updateService = async (serviceId, service) => {
+  const validateCategory = async () => {
+    const category = await officeServiceModel.getCategoryById(
+      service.category_id,
+    );
+
+    if (!category) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (category.type !== "service") {
+      throw new AppError("Category must be a service category", 400);
+    }
+  };
+
+  if (service.category_id !== undefined) {
+    await validateCategory();
+  }
+
+  try {
+    const updatedService = await officeServiceModel.updateService(
+      serviceId,
+      service,
+    );
+
+    if (!updatedService) {
+      if (service.category_id !== undefined) {
+        await validateCategory();
+      }
+
+      throw new AppError("Service not found", 404);
+    }
+
+    return updatedService;
+  } catch (error) {
+    if (error.code === "23503") {
+      throw new AppError("Category not found", 404);
+    }
+
+    throw error;
+  }
+};

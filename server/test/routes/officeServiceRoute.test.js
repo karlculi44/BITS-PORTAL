@@ -228,3 +228,164 @@ describe("POST /api/services", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 });
+
+describe("PATCH /api/services/:id", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("updates only supplied fields and returns the service", async () => {
+    const updated = {
+      id: 9,
+      title: "Updated transcript request",
+      url: validInput.url,
+      description: validInput.description,
+      image: null,
+      sort_order: 0,
+      category_id: validInput.category_id,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-02-01T00:00:00.000Z",
+    };
+    pool.query.mockResolvedValueOnce({ rows: [updated] });
+
+    const response = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("admin"))
+      .send({ title: updated.title });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "Service updated successfully",
+      data: updated,
+    });
+    const [query, values] = pool.query.mock.calls[0];
+    expect(query).toContain("SET title = $1, updated_at = CURRENT_TIMESTAMP");
+    expect(query).not.toContain("url =");
+    expect(query).not.toContain("description =");
+    expect(query).not.toContain("image =");
+    expect(query).not.toContain("sort_order =");
+    expect(query).not.toContain("category_id =");
+    expect(values).toEqual([updated.title, "9"]);
+  });
+
+  it("allows explicitly clearing the image", async () => {
+    const updated = { id: 9, ...validInput, image: null };
+    pool.query.mockResolvedValueOnce({ rows: [updated] });
+
+    const response = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("admin"))
+      .send({ image: null });
+
+    expect(response.status).toBe(200);
+    expect(pool.query.mock.calls[0][0]).toContain("image = $1");
+    expect(pool.query.mock.calls[0][1]).toEqual([null, "9"]);
+  });
+
+  it("validates a new category and updates the category only when it is a service category", async () => {
+    const updated = { id: 9, ...validInput, category_id: 4 };
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 4, type: "service" }] })
+      .mockResolvedValueOnce({ rows: [updated] });
+
+    const response = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 4 });
+
+    expect(response.status).toBe(200);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query.mock.calls[1][0]).toContain("type = 'service'");
+    expect(pool.query.mock.calls[1][0]).toContain("FOR SHARE");
+    expect(pool.query.mock.calls[1][1]).toEqual([4, "9"]);
+  });
+
+  it("returns 404 when the service does not exist", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .patch("/api/services/999")
+      .set("Cookie", accessCookie("admin"))
+      .send({ title: "Updated" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Service not found");
+  });
+
+  it("rejects a missing or policy category before updating", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 4, type: "policy" }] });
+
+    const missingCategory = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 4 });
+    expect(missingCategory.status).toBe(404);
+    expect(missingCategory.body.message).toBe("Category not found");
+    expect(pool.query).toHaveBeenCalledTimes(1);
+
+    pool.query.mockReset();
+    pool.query.mockResolvedValueOnce({ rows: [{ id: 4, type: "policy" }] });
+    const policyCategory = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("admin"))
+      .send({ category_id: 4 });
+    expect(policyCategory.status).toBe(400);
+    expect(policyCategory.body.message).toBe(
+      "Category must be a service category",
+    );
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects invalid IDs and invalid or empty update bodies", async () => {
+    for (const id of ["invalid", "0", "2147483648"]) {
+      const response = await request(app)
+        .patch(`/api/services/${id}`)
+        .set("Cookie", accessCookie("admin"))
+        .send({ title: "Updated" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Invalid service ID");
+    }
+
+    for (const body of [
+      {},
+      { title: "" },
+      { title: 5 },
+      { url: "not-a-url" },
+      { description: "" },
+      { image: 5 },
+      { sort_order: 1.5 },
+      { sort_order: "1" },
+      { category_id: 0 },
+      { category_id: "3" },
+      { unknown: "field" },
+    ]) {
+      const response = await request(app)
+        .patch("/api/services/9")
+        .set("Cookie", accessCookie("admin"))
+        .send(body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+    }
+
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication and admin authorization", async () => {
+    const unauthenticated = await request(app)
+      .patch("/api/services/9")
+      .send({ title: "Updated" });
+    const staff = await request(app)
+      .patch("/api/services/9")
+      .set("Cookie", accessCookie("staff"))
+      .send({ title: "Updated" });
+
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});

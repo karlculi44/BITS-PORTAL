@@ -45,3 +45,83 @@ export const insertService = async ({
 
   return result.rows[0];
 };
+
+export const updateService = async (serviceId, service) => {
+  const updates = [];
+  const values = [];
+  let categoryIdIndex;
+
+  if (service.title !== undefined) {
+    values.push(service.title);
+    updates.push(`title = $${values.length}`);
+  }
+
+  if (service.url !== undefined) {
+    values.push(service.url);
+    updates.push(`url = $${values.length}`);
+  }
+
+  if (service.description !== undefined) {
+    values.push(service.description);
+    updates.push(`description = $${values.length}`);
+  }
+
+  if (service.image !== undefined) {
+    values.push(service.image);
+    updates.push(`image = $${values.length}`);
+  }
+
+  if (service.sort_order !== undefined) {
+    values.push(service.sort_order);
+    updates.push(`sort_order = $${values.length}`);
+  }
+
+  if (service.category_id !== undefined) {
+    values.push(service.category_id);
+    categoryIdIndex = values.length;
+    updates.push(`category_id = $${values.length}`);
+  }
+
+  updates.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(serviceId);
+
+  const query = categoryIdIndex === undefined
+    ? `UPDATE services
+      SET ${updates.join(", ")}
+      WHERE id = $${values.length}
+      RETURNING
+        services.id,
+        services.title,
+        services.url,
+        services.image,
+        services.description,
+        services.sort_order,
+        services.category_id,
+        services.created_at,
+        services.updated_at`
+    : `WITH service_category AS MATERIALIZED (
+        SELECT id
+        FROM categories
+        WHERE id = $${categoryIdIndex}
+          AND type = 'service'
+        FOR SHARE
+      )
+      UPDATE services
+      SET ${updates.join(", ")}
+      FROM service_category
+      WHERE services.id = $${values.length}
+      RETURNING
+        services.id,
+        services.title,
+        services.url,
+        services.image,
+        services.description,
+        services.sort_order,
+        services.category_id,
+        services.created_at,
+        services.updated_at`;
+
+  const result = await pool.query(query, values);
+
+  return result.rows[0];
+};

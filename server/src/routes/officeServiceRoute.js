@@ -1,6 +1,12 @@
 import { Router } from "express";
-import { createServiceController } from "../controllers/serviceController.js";
-import { createServiceSchema } from "../schemas/officeServiceSchema.js";
+import {
+  createServiceController,
+  updateServiceController,
+} from "../controllers/serviceController.js";
+import {
+  createServiceSchema,
+  updateServiceSchema,
+} from "../schemas/officeServiceSchema.js";
 import validate from "../middlewares/validate.js";
 import authorize from "../middlewares/authorize.js";
 import verifyToken from "../middlewares/verifyToken.js";
@@ -13,6 +19,14 @@ router.post(
   verifyToken,
   authorize("admin"),
   createServiceController,
+);
+
+router.patch(
+  "/:id",
+  validate(updateServiceSchema),
+  verifyToken,
+  authorize("admin"),
+  updateServiceController,
 );
 
 export default router;

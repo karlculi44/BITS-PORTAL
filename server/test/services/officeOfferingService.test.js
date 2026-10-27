@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../src/models/officeServiceModel.js", () => ({
   getCategoryById: vi.fn(),
   insertService: vi.fn(),
+  updateService: vi.fn(),
 }));
 
 import * as officeServiceModel from "../../src/models/officeServiceModel.js";
-import { createService } from "../../src/services/officeOfferingService.js";
+import {
+  createService,
+  updateService,
+} from "../../src/services/officeOfferingService.js";
 
 const serviceInput = {
   title: "Transcript Request",
@@ -20,6 +24,7 @@ describe("officeOfferingService", () => {
   beforeEach(() => {
     officeServiceModel.getCategoryById.mockReset();
     officeServiceModel.insertService.mockReset();
+    officeServiceModel.updateService.mockReset();
   });
 
   it("creates a service under an existing service category", async () => {
@@ -88,5 +93,72 @@ describe("officeOfferingService", () => {
     officeServiceModel.getCategoryById.mockRejectedValueOnce(error);
 
     await expect(createService(serviceInput)).rejects.toBe(error);
+  });
+
+  it("updates a service without requiring category validation when category is unchanged", async () => {
+    const changes = { title: "Updated transcript request" };
+    const service = { id: 8, ...serviceInput, ...changes };
+    officeServiceModel.updateService.mockResolvedValueOnce(service);
+
+    await expect(updateService(8, changes)).resolves.toBe(service);
+    expect(officeServiceModel.getCategoryById).not.toHaveBeenCalled();
+    expect(officeServiceModel.updateService).toHaveBeenCalledWith(8, changes);
+  });
+
+  it("requires a new category to exist and be a service category", async () => {
+    officeServiceModel.getCategoryById.mockResolvedValueOnce(undefined);
+
+    await expect(updateService(8, { category_id: 9 })).rejects.toMatchObject({
+      message: "Category not found",
+      statusCode: 404,
+    });
+    expect(officeServiceModel.updateService).not.toHaveBeenCalled();
+
+    officeServiceModel.getCategoryById.mockResolvedValueOnce({
+      id: 9,
+      type: "policy",
+    });
+    await expect(updateService(8, { category_id: 9 })).rejects.toMatchObject({
+      message: "Category must be a service category",
+      statusCode: 400,
+    });
+    expect(officeServiceModel.updateService).not.toHaveBeenCalled();
+  });
+
+  it("reports missing services and category changes that race with an update", async () => {
+    officeServiceModel.updateService.mockResolvedValueOnce(undefined);
+    await expect(updateService(99, { title: "Updated" })).rejects.toMatchObject({
+      message: "Service not found",
+      statusCode: 404,
+    });
+
+    officeServiceModel.getCategoryById
+      .mockResolvedValueOnce({ id: 9, type: "service" })
+      .mockResolvedValueOnce({ id: 9, type: "policy" });
+    officeServiceModel.updateService.mockResolvedValueOnce(undefined);
+    await expect(
+      updateService(8, { category_id: 9 }),
+    ).rejects.toMatchObject({
+      message: "Category must be a service category",
+      statusCode: 400,
+    });
+  });
+
+  it("maps category foreign-key races and rethrows unexpected update errors", async () => {
+    officeServiceModel.getCategoryById.mockResolvedValueOnce({
+      id: 9,
+      type: "service",
+    });
+    officeServiceModel.updateService.mockRejectedValueOnce({ code: "23503" });
+    await expect(
+      updateService(8, { category_id: 9 }),
+    ).rejects.toMatchObject({
+      message: "Category not found",
+      statusCode: 404,
+    });
+
+    const error = new Error("Database unavailable");
+    officeServiceModel.updateService.mockRejectedValueOnce(error);
+    await expect(updateService(8, { title: "Updated" })).rejects.toBe(error);
   });
 });
