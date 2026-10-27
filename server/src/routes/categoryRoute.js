@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createCategory,
   getAllCategories,
+  getCategoryByName,
 } from "../controllers/categoryController.js";
 import { createCategorySchema } from "../schemas/categorySchema.js";
 import validate from "../middlewares/validate.js";
@@ -11,6 +12,7 @@ import verifyToken from "../middlewares/verifyToken.js";
 const router = Router();
 
 router.get("/", verifyToken, authorize("admin"), getAllCategories);
+router.get("/:name", verifyToken, authorize("admin"), getCategoryByName);
 
 router.post(
   "/",
