@@ -24,6 +24,42 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+describe("GET /api/services", () => {
+  beforeEach(() => {
+    pool.query.mockReset();
+  });
+
+  it.each([
+    ["public", undefined],
+    ["admin", "admin"],
+  ])("returns services to %s callers", async (caller, role) => {
+    const services = [
+      {
+        id: 9,
+        title: "Transcript Request",
+        url: "https://example.com/transcript",
+        description: "Request an official transcript",
+        image: null,
+        sort_order: 0,
+        category_id: 3,
+      },
+    ];
+    pool.query.mockResolvedValueOnce({ rows: services });
+
+    let response = request(app).get("/api/services");
+    if (role) {
+      response = response.set("Cookie", accessCookie(role));
+    }
+
+    const result = await response;
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual(services);
+    expect(pool.query).toHaveBeenCalledOnce();
+    expect(pool.query.mock.calls[0][0]).toContain("FROM services");
+  });
+});
+
 describe("POST /api/services", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;
@@ -439,16 +475,22 @@ describe("GET /api/services/search/:term", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 
-  it("requires authentication and admin authorization", async () => {
-    const unauthenticated = await request(app).get(
+  it("allows both public and admin callers", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const publicResponse = await request(app).get(
       "/api/services/search/transcript",
     );
-    const staff = await request(app)
+    const adminResponse = await request(app)
       .get("/api/services/search/transcript")
-      .set("Cookie", accessCookie("staff"));
+      .set("Cookie", accessCookie("admin"));
 
-    expect(unauthenticated.status).toBe(401);
-    expect(staff.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(publicResponse.status).toBe(200);
+    expect(publicResponse.body).toEqual([]);
+    expect(adminResponse.status).toBe(200);
+    expect(adminResponse.body).toEqual([]);
+    expect(pool.query).toHaveBeenCalledTimes(2);
   });
 });

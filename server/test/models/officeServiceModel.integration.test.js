@@ -95,6 +95,44 @@ describe("officeServiceModel integration", () => {
     });
   });
 
+  it("returns all services ordered by sort order and ID", async () => {
+    const later = await officeServiceModel.insertService({
+      title: "Later service",
+      url: "https://example.com/later",
+      description: "Higher sort order",
+      sort_order: 5,
+      category_id: 10,
+    });
+    const earlier = await officeServiceModel.insertService({
+      title: "Earlier service",
+      url: "https://example.com/earlier",
+      description: "Lower sort order",
+      sort_order: 1,
+      category_id: 10,
+    });
+
+    const services = await officeServiceModel.getAllServices();
+    const serviceIds = services.map((service) => service.id);
+
+    expect(serviceIds.indexOf(earlier.id)).toBeLessThan(
+      serviceIds.indexOf(later.id),
+    );
+    expect(services).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: earlier.id,
+          title: earlier.title,
+          description: earlier.description,
+        }),
+        expect.objectContaining({
+          id: later.id,
+          title: later.title,
+          description: later.description,
+        }),
+      ]),
+    );
+  });
+
   it("does not insert for categories that are missing or not service categories", async () => {
     const input = {
       title: "Not inserted",

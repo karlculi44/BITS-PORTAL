@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/models/officeServiceModel.js", () => ({
+  getAllServices: vi.fn(),
   getCategoryById: vi.fn(),
   insertService: vi.fn(),
   searchServices: vi.fn(),
@@ -10,6 +11,7 @@ vi.mock("../../src/models/officeServiceModel.js", () => ({
 import * as officeServiceModel from "../../src/models/officeServiceModel.js";
 import {
   createService,
+  getAllServices,
   searchServices,
   updateService,
 } from "../../src/services/officeOfferingService.js";
@@ -24,10 +26,19 @@ const serviceInput = {
 
 describe("officeOfferingService", () => {
   beforeEach(() => {
+    officeServiceModel.getAllServices.mockReset();
     officeServiceModel.getCategoryById.mockReset();
     officeServiceModel.insertService.mockReset();
     officeServiceModel.searchServices.mockReset();
     officeServiceModel.updateService.mockReset();
+  });
+
+  it("returns all services from the model", async () => {
+    const services = [{ id: 8, title: "Transcript Request" }];
+    officeServiceModel.getAllServices.mockResolvedValueOnce(services);
+
+    await expect(getAllServices()).resolves.toBe(services);
+    expect(officeServiceModel.getAllServices).toHaveBeenCalledOnce();
   });
 
   it("creates a service under an existing service category", async () => {

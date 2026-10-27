@@ -2,6 +2,11 @@ import * as officeOfferingService from "../services/officeOfferingService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 
+export const getAllServicesController = asyncHandler(async (req, res) => {
+  const services = await officeOfferingService.getAllServices();
+  res.status(200).json(services);
+});
+
 export const createServiceController = asyncHandler(async (req, res) => {
   const service = await officeOfferingService.createService(req.body);
 
@@ -33,6 +38,21 @@ export const updateServiceController = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     message: "Service updated successfully",
+    data: service,
+  });
+});
+
+export const deleteServiceController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid service ID", 400);
+  }
+
+  const service = await officeOfferingService.deleteService(id);
+
+  res.status(200).json({
+    message: "Service deleted successfully",
     data: service,
   });
 });

@@ -11,6 +11,16 @@ export const getCategoryById = async (categoryId) => {
   return result.rows[0];
 };
 
+export const getAllServices = async () => {
+  const result = await pool.query(
+    `SELECT id, title, url, image, description, sort_order, category_id, created_at, updated_at
+    FROM services
+    ORDER BY sort_order ASC, id ASC`,
+  );
+
+  return result.rows;
+};
+
 export const insertService = async ({
   title,
   url,
@@ -134,6 +144,17 @@ export const updateService = async (serviceId, service) => {
         services.updated_at`;
 
   const result = await pool.query(query, values);
+
+  return result.rows[0];
+};
+
+export const deleteService = async (serviceId) => {
+  const result = await pool.query(
+    `DELETE FROM services
+    WHERE id = $1
+    RETURNING id, title, url, image, description, sort_order, category_id, created_at, updated_at`,
+    [serviceId],
+  );
 
   return result.rows[0];
 };

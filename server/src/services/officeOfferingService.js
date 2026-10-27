@@ -1,6 +1,10 @@
 import * as officeServiceModel from "../models/officeServiceModel.js";
 import AppError from "../utils/AppError.js";
 
+export const getAllServices = async () => {
+  return await officeServiceModel.getAllServices();
+};
+
 export const createService = async (service) => {
   const category = await officeServiceModel.getCategoryById(
     service.category_id,
@@ -60,6 +64,16 @@ export const updateService = async (serviceId, service) => {
     if (category.type !== "service") {
       throw new AppError("Category must be a service category", 400);
     }
+  };
+
+  export const deleteService = async (serviceId) => {
+    const service = await officeServiceModel.deleteService(serviceId);
+
+    if (!service) {
+      throw new AppError("Service not found", 404);
+    }
+
+    return service;
   };
 
   if (service.category_id !== undefined) {
