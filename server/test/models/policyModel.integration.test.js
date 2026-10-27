@@ -168,4 +168,26 @@ describe("policyModel integration", () => {
       policyModel.updatePolicy(created.id, { category_id: 99 }),
     ).resolves.toBeUndefined();
   });
+
+  it("deletes a policy and returns the deleted record", async () => {
+    const created = await policyModel.insertPolicy({
+      title: "Policy to Delete",
+      description: "This policy will be removed",
+      file: "https://example.com/policy-to-delete.pdf",
+      category_id: 11,
+    });
+
+    const deleted = await policyModel.deletePolicy(created.id);
+
+    expect(deleted).toMatchObject({
+      id: created.id,
+      category_id: 11,
+      title: "Policy to Delete",
+      description: "This policy will be removed",
+      file: "https://example.com/policy-to-delete.pdf",
+    });
+    await expect(
+      policyModel.deletePolicy(created.id),
+    ).resolves.toBeUndefined();
+  });
 });

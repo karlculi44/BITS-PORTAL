@@ -30,3 +30,18 @@ export const updatePolicyController = asyncHandler(async (req, res) => {
     data: policy,
   });
 });
+
+export const deletePolicyController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid policy ID", 400);
+  }
+
+  const policy = await policyService.deletePolicy(id);
+
+  res.status(200).json({
+    message: "Policy deleted successfully",
+    data: policy,
+  });
+});

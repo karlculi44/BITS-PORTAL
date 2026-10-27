@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPolicyController,
+  deletePolicyController,
   getAllPoliciesController,
   updatePolicyController,
 } from "../controllers/policyController.js";
@@ -31,5 +32,7 @@ router.patch(
   authorize("admin"),
   updatePolicyController,
 );
+
+router.delete("/:id", verifyToken, authorize("admin"), deletePolicyController);
 
 export default router;

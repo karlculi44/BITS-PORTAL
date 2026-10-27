@@ -82,3 +82,13 @@ export const updatePolicy = async (policyId, policy) => {
     throw error;
   }
 };
+
+export const deletePolicy = async (policyId) => {
+  const policy = await policyModel.deletePolicy(policyId);
+
+  if (!policy) {
+    throw new AppError("Policy not found", 404);
+  }
+
+  return policy;
+};

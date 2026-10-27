@@ -364,3 +364,79 @@ describe("PATCH /api/policies/:id", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 });
+
+describe("DELETE /api/policies/:id", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("deletes a policy and returns the deleted record", async () => {
+    const policy = {
+      id: 5,
+      category_id: 11,
+      title: "Student Handbook",
+      description: null,
+      file: "https://example.com/handbook.pdf",
+    };
+    pool.query.mockResolvedValueOnce({ rows: [policy] });
+
+    const response = await request(app)
+      .delete("/api/policies/5")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: "Policy deleted successfully",
+      data: policy,
+    });
+    expect(pool.query.mock.calls[0][0]).toContain("DELETE FROM policies");
+    expect(pool.query.mock.calls[0][1]).toEqual(["5"]);
+  });
+
+  it("returns 404 when the policy does not exist", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app)
+      .delete("/api/policies/99")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Policy not found");
+  });
+
+  it.each(["invalid", "0", "2147483648"])(
+    "rejects invalid policy ID %s",
+    async (id) => {
+      const response = await request(app)
+        .delete(`/api/policies/${id}`)
+        .set("Cookie", accessCookie("admin"));
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Invalid policy ID");
+      expect(pool.query).not.toHaveBeenCalled();
+    },
+  );
+
+  it("requires authentication and admin authorization", async () => {
+    const unauthenticated = await request(app).delete("/api/policies/5");
+    const staff = await request(app)
+      .delete("/api/policies/5")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(unauthenticated.status).toBe(401);
+    expect(staff.status).toBe(403);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it("uses the existing error response for database failures", async () => {
+    pool.query.mockRejectedValueOnce(new Error("Database unavailable"));
+
+    const response = await request(app)
+      .delete("/api/policies/5")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe("Internal Server Error");
+  });
+});

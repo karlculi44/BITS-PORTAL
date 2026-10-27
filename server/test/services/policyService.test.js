@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../src/models/policyModel.js", () => ({
   getAllPolicies: vi.fn(),
   getCategoryById: vi.fn(),
+  deletePolicy: vi.fn(),
   insertPolicy: vi.fn(),
   updatePolicy: vi.fn(),
 }));
@@ -10,6 +11,7 @@ vi.mock("../../src/models/policyModel.js", () => ({
 import * as policyModel from "../../src/models/policyModel.js";
 import {
   createPolicy,
+  deletePolicy,
   getAllPolicies,
   updatePolicy,
 } from "../../src/services/policyService.js";
@@ -25,6 +27,7 @@ describe("policyService", () => {
   beforeEach(() => {
     policyModel.getAllPolicies.mockReset();
     policyModel.getCategoryById.mockReset();
+    policyModel.deletePolicy.mockReset();
     policyModel.insertPolicy.mockReset();
     policyModel.updatePolicy.mockReset();
   });
@@ -35,6 +38,30 @@ describe("policyService", () => {
 
     await expect(getAllPolicies()).resolves.toBe(policies);
     expect(policyModel.getAllPolicies).toHaveBeenCalledOnce();
+  });
+
+  it("deletes an existing policy", async () => {
+    const policy = { id: 5, title: "Student Handbook" };
+    policyModel.deletePolicy.mockResolvedValueOnce(policy);
+
+    await expect(deletePolicy("5")).resolves.toBe(policy);
+    expect(policyModel.deletePolicy).toHaveBeenCalledWith("5");
+  });
+
+  it("returns not found when the policy does not exist", async () => {
+    policyModel.deletePolicy.mockResolvedValueOnce(undefined);
+
+    await expect(deletePolicy("99")).rejects.toMatchObject({
+      message: "Policy not found",
+      statusCode: 404,
+    });
+  });
+
+  it("propagates unexpected delete errors", async () => {
+    const error = new Error("Database unavailable");
+    policyModel.deletePolicy.mockRejectedValueOnce(error);
+
+    await expect(deletePolicy("5")).rejects.toBe(error);
   });
 
   it("creates a policy under an existing policy category", async () => {

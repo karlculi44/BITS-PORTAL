@@ -106,3 +106,14 @@ export const updatePolicy = async (policyId, policy) => {
 
   return result.rows[0];
 };
+
+export const deletePolicy = async (policyId) => {
+  const result = await pool.query(
+    `DELETE FROM policies
+    WHERE id = $1
+    RETURNING id, category_id, title, description, file, created_at, updated_at`,
+    [policyId],
+  );
+
+  return result.rows[0];
+};
