@@ -27,4 +27,19 @@ describe("app", () => {
     });
     expect(pool.query).toHaveBeenCalledWith("SELECT 1");
   });
+
+  it("reports a database failure without exposing internal details", async () => {
+    pool.query.mockRejectedValueOnce(new Error("database credentials leaked"));
+    const errorLogger = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const response = await request(app).get("/api/health");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ message: "Internal Server Error" });
+      expect(pool.query).toHaveBeenCalledWith("SELECT 1");
+    } finally {
+      errorLogger.mockRestore();
+    }
+  });
 });
