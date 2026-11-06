@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -13,9 +14,18 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route element={<AdminLayout />}>
+          <Route
+            path="/unauthorized"
+            element={<Placeholder name="Unauthorized" />}
+          />
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={["admin", "staff"]}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/users" element={<Placeholder name="Users" />} />
             <Route path="/services" element={<Placeholder name="Services" />} />
             <Route path="/policies" element={<Placeholder name="Policies" />} />
             <Route
@@ -23,8 +33,20 @@ function App() {
               element={<Placeholder name="Categories" />}
             />
             <Route
+              path="/users"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Placeholder name="Users" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/activity-logs"
-              element={<Placeholder name="Activity Logs" />}
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Placeholder name="Activity Logs" />
+                </ProtectedRoute>
+              }
             />
           </Route>
         </Routes>

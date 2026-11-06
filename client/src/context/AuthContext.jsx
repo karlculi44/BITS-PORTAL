@@ -1,12 +1,11 @@
-import { createContext, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { AuthContext } from "./authContextValue";
 import {
   login as loginUser,
   logout as logoutUser,
   googleLogin as googleLoginUser,
   getMe,
 } from "../services/authService";
-
-export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

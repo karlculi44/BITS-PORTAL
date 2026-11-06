@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
-/* eslint-disable no-unused-vars -- Core ESLint does not recognize JSX references. */
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { AuthProvider } from "./AuthContext";
@@ -10,6 +15,7 @@ import { useAuth } from "../hooks/useAuth";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import AdminLayout from "../layouts/AdminLayout";
+import ProtectedRoute from "../components/ProtectedRoute";
 import * as authService from "../services/authService";
 import * as dashboardService from "../services/dashboardService";
 
@@ -33,7 +39,13 @@ function Status() {
   const location = useLocation();
   return (
     <div>
-      <span data-testid="status">{loading ? "loading" : currentUser ? currentUser.first_name : "signed out"}</span>
+      <span data-testid="status">
+        {loading
+          ? "loading"
+          : currentUser
+            ? currentUser.first_name
+            : "signed out"}
+      </span>
       <span data-testid="location">{location.pathname}</span>
     </div>
   );
@@ -47,7 +59,13 @@ function renderApp(path = "/login") {
           <Status />
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route element={<AdminLayout />}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/dashboard" element={<Dashboard />} />
             </Route>
           </Routes>
@@ -62,7 +80,13 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   authService.getMe.mockRejectedValue({ response: { status: 401 } });
   dashboardService.getDashboardData.mockResolvedValue({
-    stats: { total_users: 0, active_users: 0, total_services: 0, total_policies: 0, total_categories: 0 },
+    stats: {
+      total_users: 0,
+      active_users: 0,
+      total_services: 0,
+      total_policies: 0,
+      total_categories: 0,
+    },
     recentUsers: [],
     recentServices: [],
   });
@@ -75,11 +99,18 @@ describe("AuthProvider", () => {
     renderApp();
     await screen.findByText("signed out");
     authService.getMe.mockResolvedValue({ user });
-    fireEvent.change(screen.getByLabelText("Username"), { target: { value: " testuser " } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: " testuser " },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "password" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
     await screen.findByText("Welcome, Test");
-    expect(authService.login).toHaveBeenCalledWith({ username: "testuser", password: "password" });
+    expect(authService.login).toHaveBeenCalledWith({
+      username: "testuser",
+      password: "password",
+    });
     expect(toast.success).toHaveBeenCalledWith("Login successful");
     expect(screen.getByTestId("status").textContent).toBe("Test");
   });
@@ -92,18 +123,28 @@ describe("AuthProvider", () => {
 
   it("redirects unauthenticated users to login", async () => {
     renderApp("/dashboard");
-    await waitFor(() => expect(screen.getByTestId("location").textContent).toBe("/login"));
+    await waitFor(() =>
+      expect(screen.getByTestId("location").textContent).toBe("/login"),
+    );
   });
 
   it("shows login errors without authenticating", async () => {
-    authService.login.mockRejectedValue({ response: { data: { message: "Invalid username or password" } } });
+    authService.login.mockRejectedValue({
+      response: { data: { message: "Invalid username or password" } },
+    });
     renderApp();
     await screen.findByText("signed out");
-    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "testuser" } });
-    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong" } });
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "wrong" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
     await screen.findByRole("alert");
-    expect(screen.getByRole("alert").textContent).toBe("Invalid username or password");
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Invalid username or password",
+    );
     expect(screen.getByTestId("status").textContent).toBe("signed out");
   });
 
@@ -113,7 +154,9 @@ describe("AuthProvider", () => {
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
     fireEvent.click(screen.getByRole("button", { name: "Logout" }));
-    await waitFor(() => expect(screen.getByTestId("location").textContent).toBe("/login"));
+    await waitFor(() =>
+      expect(screen.getByTestId("location").textContent).toBe("/login"),
+    );
     expect(screen.getByTestId("status").textContent).toBe("signed out");
   });
 
@@ -123,7 +166,11 @@ describe("AuthProvider", () => {
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
     fireEvent.click(screen.getByRole("button", { name: "Logout" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Unable to log out. Please try again."));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Unable to log out. Please try again.",
+      ),
+    );
     expect(screen.getByTestId("location").textContent).toBe("/dashboard");
     expect(screen.getByTestId("status").textContent).toBe("Test");
   });

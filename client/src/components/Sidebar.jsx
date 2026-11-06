@@ -1,24 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import {
-  FolderTree,
-  History,
-  LayoutDashboard,
-  LogOut,
-  ScrollText,
-  Server,
-  Users,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-
-export const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/users", label: "Users", icon: Users },
-  { to: "/services", label: "Services", icon: Server },
-  { to: "/policies", label: "Policies", icon: ScrollText },
-  { to: "/categories", label: "Categories", icon: FolderTree },
-  { to: "/activity-logs", label: "Activity Logs", icon: History },
-];
+import { navItems } from "./navItems";
 
 function Sidebar({ open, onClose }) {
   const { logout } = useAuth();
