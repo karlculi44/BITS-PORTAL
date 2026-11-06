@@ -8,8 +8,13 @@ import toast from "react-hot-toast";
 import { AuthProvider, useAuth } from "./AuthContext";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
+import AdminLayout from "../layouts/AdminLayout";
 import * as authService from "../services/authService";
+import * as dashboardService from "../services/dashboardService";
 
+vi.mock("../services/dashboardService", () => ({
+  getDashboardData: vi.fn(),
+}));
 vi.mock("../services/authService", () => ({
   login: vi.fn(),
   logout: vi.fn(),
@@ -42,7 +47,9 @@ function renderApp(path = "/login") {
           <Status />
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route element={<AdminLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
             <Route path="/other" element={<div>Other</div>} />
           </Routes>
         </AuthProvider>
@@ -54,6 +61,11 @@ function renderApp(path = "/login") {
 beforeEach(() => {
   vi.resetAllMocks();
   authService.getSession.mockRejectedValue({ response: { status: 401 } });
+  dashboardService.getDashboardData.mockResolvedValue({
+    stats: { total_users: 0, active_users: 0, total_services: 0, total_policies: 0, total_categories: 0 },
+    recentUsers: [],
+    recentServices: [],
+  });
 });
 afterEach(cleanup);
 
