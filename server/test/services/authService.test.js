@@ -3,15 +3,17 @@ import bcrypt from "bcrypt";
 
 vi.mock("../../src/models/authModel.js", () => ({
   insertRefreshToken: vi.fn(),
+  revokeRefreshToken: vi.fn(),
 }));
 
 vi.mock("../../src/models/userModel.js", () => ({
   getUserForLogin: vi.fn(),
+  getUserById: vi.fn(),
 }));
 
 import * as authModel from "../../src/models/authModel.js";
 import * as userModel from "../../src/models/userModel.js";
-import { loginUser } from "../../src/services/authService.js";
+import { getSessionUser, loginUser, logoutUser } from "../../src/services/authService.js";
 import { hashToken } from "../../src/utils/hashToken.js";
 
 const user = {
@@ -32,6 +34,24 @@ describe("loginUser", () => {
     userModel.getUserForLogin.mockReset();
     authModel.insertRefreshToken.mockReset();
     user.password_hash = await bcrypt.hash("correct-password", 4);
+  });
+
+  describe("session and logout", () => {
+    it("returns an active user and rejects missing or inactive users", async () => {
+      const active = { id: 7, is_active: true };
+      userModel.getUserById.mockResolvedValueOnce(active).mockResolvedValueOnce(undefined).mockResolvedValueOnce({ ...active, is_active: false });
+      await expect(getSessionUser("7")).resolves.toEqual(active);
+      await expect(getSessionUser("7")).rejects.toMatchObject({ statusCode: 401 });
+      await expect(getSessionUser("7")).rejects.toMatchObject({ statusCode: 401 });
+    });
+
+    it("revokes only the hash of the supplied refresh token", async () => {
+      authModel.revokeRefreshToken.mockReset();
+      await logoutUser("refresh-token");
+      expect(authModel.revokeRefreshToken).toHaveBeenCalledWith(hashToken("refresh-token"));
+      await logoutUser(undefined);
+      expect(authModel.revokeRefreshToken).toHaveBeenCalledTimes(1);
+    });
   });
 
   afterEach(() => {

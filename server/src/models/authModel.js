@@ -11,3 +11,11 @@ export const insertRefreshToken = async ({ userId, tokenHash, expiresAt }) => {
     [userId, tokenHash, expiresAt],
   );
 };
+
+export const revokeRefreshToken = async (tokenHash) => {
+  await pool.query(
+    `UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP
+    WHERE token_hash = $1 AND revoked_at IS NULL`,
+    [tokenHash],
+  );
+};

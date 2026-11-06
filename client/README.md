@@ -1,5 +1,20 @@
 # React + Vite
 
+## Authentication
+
+`useAuth()` exposes the authenticated user, loading state, `isAuthenticated`,
+`login`, `logout`, and `checkAuth` to components under `AuthProvider`. The
+provider restores the user through `GET /api/auth/session` on startup and
+logout calls `POST /api/auth/logout`. Authentication cookies are HTTP-only and
+are sent by Axios with credentials; no tokens are stored in browser storage.
+
+The session endpoint checks the existing access token, which expires after 15
+minutes. The backend does not currently refresh access tokens, so users must
+sign in again after expiry. Logout clears the browser cookies and revokes the
+stored refresh token; an already issued access JWT remains valid until expiry.
+The development server proxies `/api` to the backend. A cross-origin API
+deployment must separately configure the backend to allow credentialed CORS.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

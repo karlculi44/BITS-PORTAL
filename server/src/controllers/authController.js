@@ -2,6 +2,12 @@ import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import * as authService from "../services/authService.js";
 
+const cookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+});
+
 export const loginUserController = asyncHandler(async (req, res) => {
   const { username, password } = req.body ?? {};
 
@@ -20,16 +26,12 @@ export const loginUserController = asyncHandler(async (req, res) => {
   });
 
   res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    ...cookieOptions(),
     maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    ...cookieOptions(),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -37,4 +39,16 @@ export const loginUserController = asyncHandler(async (req, res) => {
     message: "Login successful",
     data: user,
   });
+});
+
+export const getSessionController = asyncHandler(async (req, res) => {
+  const user = await authService.getSessionUser(req.user.sub);
+  res.json({ message: "Session retrieved successfully", data: user });
+});
+
+export const logoutUserController = asyncHandler(async (req, res) => {
+  await authService.logoutUser(req.cookies?.refreshToken);
+  res.clearCookie("accessToken", cookieOptions());
+  res.clearCookie("refreshToken", cookieOptions());
+  res.json({ message: "Logout successful" });
 });

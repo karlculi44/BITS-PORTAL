@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { login } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 
 const getErrorMessage = (error) => {
   const data = error.response?.data;
@@ -16,6 +16,7 @@ const getErrorMessage = (error) => {
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +34,7 @@ function Login() {
 
     setLoading(true);
     try {
-      await login(username.trim(), password);
+      await login({ username: username.trim(), password });
       toast.success("Login successful");
       navigate("/dashboard");
     } catch (err) {

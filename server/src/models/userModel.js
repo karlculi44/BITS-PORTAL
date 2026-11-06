@@ -48,6 +48,24 @@ export const getUserByUsername = async (username) => {
   return result.rows[0];
 };
 
+export const getUserById = async (id) => {
+  const result = await pool.query(
+    `SELECT
+      id,
+      first_name,
+      last_name,
+      username,
+      role,
+      is_active,
+      created_at
+    FROM users
+    WHERE id = $1`,
+    [id],
+  );
+
+  return result.rows[0];
+};
+
 export const getAllUsers = async () => {
   const result = await pool.query(
     `SELECT

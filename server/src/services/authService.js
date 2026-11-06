@@ -60,3 +60,17 @@ export const loginUser = async ({ username, password }) => {
     accessToken,
   };
 };
+
+export const getSessionUser = async (userId) => {
+  const user = await userModel.getUserById(userId);
+  if (!user || !user.is_active) {
+    throw new AppError("Invalid or expired session", 401);
+  }
+  return user;
+};
+
+export const logoutUser = async (refreshToken) => {
+  if (refreshToken) {
+    await authModel.revokeRefreshToken(hashToken(refreshToken));
+  }
+};
