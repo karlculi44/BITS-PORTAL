@@ -155,7 +155,7 @@ describe("POST /api/users", () => {
             id: 2,
             first_name: "Test",
             last_name: "User",
-            username: "testuser",
+            username: "abc",
             role: "staff",
             is_active: true,
             created_at: "2026-01-01T00:00:00.000Z",
@@ -169,7 +169,7 @@ describe("POST /api/users", () => {
       .send({
         firstName: "Test",
         lastName: "User",
-        username: "testuser",
+        username: "abc",
         password: "password123",
         role: "staff",
       });
@@ -181,7 +181,7 @@ describe("POST /api/users", () => {
         id: 2,
         first_name: "Test",
         last_name: "User",
-        username: "testuser",
+        username: "abc",
         role: "staff",
         is_active: true,
         created_at: "2026-01-01T00:00:00.000Z",
@@ -234,6 +234,20 @@ describe("PATCH /api/users/:id", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;
     pool.query.mockReset();
+  });
+
+  it("allows a three-character username", async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 1, username: "abc" }] });
+
+    const response = await request(app)
+      .patch("/api/users/1")
+      .set("Cookie", accessCookie("admin"))
+      .send({ username: "abc" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.username).toBe("abc");
   });
 
   it("updates editable fields and returns no authentication secrets", async () => {
@@ -328,7 +342,7 @@ describe("PATCH /api/users/:id", () => {
     const response = await request(app)
       .patch("/api/users/1")
       .set("Cookie", accessCookie("admin"))
-      .send({ username: "short" });
+      .send({ username: "ab" });
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toBeDefined();
