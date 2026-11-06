@@ -11,6 +11,7 @@ import {
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { AuthProvider } from "./AuthContext";
+import { ThemeProvider } from "./ThemeProvider";
 import { useAuth } from "../hooks/useAuth";
 import { getAccessToken } from "../services/api";
 import Login from "../pages/Login";
@@ -56,23 +57,25 @@ function Status() {
 function renderApp(path = "/login") {
   return render(
     <StrictMode>
-      <AuthProvider>
-        <MemoryRouter initialEntries={[path]}>
-          <Status />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <Status />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/dashboard" element={<Dashboard />} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </StrictMode>,
   );
 }

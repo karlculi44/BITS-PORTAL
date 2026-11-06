@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { tooltip } from "./tooltip";
 import { createCategory, updateCategory } from "../services/categoryService";
+import { useModalTransition } from "../hooks/useModalTransition";
 
 const fieldClass =
   "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -20,6 +21,7 @@ function CategoryModal({ category, type, onClose, onSaved }) {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const dialogRef = useRef(null);
+  const { isClosing, closeWithTransition } = useModalTransition();
   const typeLabel = type === "policy" ? "Policy" : "Service";
 
   useEffect(() => {
@@ -35,7 +37,7 @@ function CategoryModal({ category, type, onClose, onSaved }) {
   const handleKeyDown = (event) => {
     if (event.key === "Escape" && !submittingRef.current) {
       event.preventDefault();
-      onClose();
+      closeWithTransition(onClose);
     }
     if (event.key !== "Tab") return;
     const focusable = dialogRef.current.querySelectorAll(
@@ -77,7 +79,7 @@ function CategoryModal({ category, type, onClose, onSaved }) {
           ? "Category updated successfully."
           : "Category created successfully.",
       );
-      onSaved();
+      closeWithTransition(onSaved);
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to save category.");
       submittingRef.current = false;
@@ -87,10 +89,12 @@ function CategoryModal({ category, type, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      className={`modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 ${
+        isClosing ? "modal-closing" : ""
+      }`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !submittingRef.current)
-          onClose();
+          closeWithTransition(onClose);
       }}
     >
       <div
@@ -124,7 +128,7 @@ function CategoryModal({ category, type, onClose, onSaved }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => closeWithTransition(onClose)}
             disabled={submitting}
             aria-label="Close modal"
             {...tooltip("Close", "left")}
@@ -161,7 +165,7 @@ function CategoryModal({ category, type, onClose, onSaved }) {
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => closeWithTransition(onClose)}
               disabled={submitting}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >

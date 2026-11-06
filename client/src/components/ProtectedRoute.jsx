@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children, allowedRoles, section }) => {
   if (loading) {
     return (
       <main
-        className="min-h-screen bg-gray-950 p-6 sm:p-8"
+        className="min-h-screen bg-slate-100 p-6 sm:p-8"
         role="status"
         aria-label="Loading page"
       >

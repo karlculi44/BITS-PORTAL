@@ -285,10 +285,11 @@ describe("Services page", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Edit Email" }));
       await screen.findByRole("option", { name: "Tools" });
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       fireEvent.click(screen.getByRole("button", { name: "Add Service" }));
       expect(screen.getByLabelText("Service Name").value).toBe("");
       fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
-      expect(screen.queryByRole("dialog")).toBeNull();
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       expect(api.post).not.toHaveBeenCalled();
       expect(api.patch).not.toHaveBeenCalled();
     });
@@ -367,10 +368,10 @@ describe("Services page", () => {
       await screen.findByText("Campus email");
       fireEvent.click(screen.getByRole("button", { name: "Add Service" }));
       fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-      expect(screen.queryByRole("dialog")).toBeNull();
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       fireEvent.click(screen.getByRole("button", { name: "Add Service" }));
       fireEvent.mouseDown(screen.getByRole("dialog").parentElement);
-      expect(screen.queryByRole("dialog")).toBeNull();
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
 
     it("prevents closing and duplicate submissions while saving, then reports failures", async () => {
@@ -428,6 +429,7 @@ describe("Services page", () => {
       expect(screen.getAllByRole("dialog")).toHaveLength(1);
       fireEvent.change(screen.getByLabelText("Service Name"), { target: { value: "Unsaved" } });
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       fireEvent.click(screen.getByRole("button", { name: "Edit Library" }));
       await screen.findByRole("option", { name: "Tools" });
       expect(screen.getByLabelText("Service Name").value).toBe("Library");

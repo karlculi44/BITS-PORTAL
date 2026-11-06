@@ -3,6 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { ImageOff, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { tooltip } from "./tooltip";
+import { useModalTransition } from "../hooks/useModalTransition";
 import {
   createService,
   getServiceImageUrl,
@@ -42,6 +43,7 @@ function ServiceModal({ service, onClose, onSaved }) {
   const [draggingImage, setDraggingImage] = useState(false);
   const submittingRef = useRef(false);
   const dialogRef = useRef(null);
+  const { isClosing, closeWithTransition } = useModalTransition();
   const imageInputRef = useRef(null);
   const previewUrlRef = useRef(null);
   const currentServiceId = service?.id ?? null;
@@ -101,7 +103,7 @@ function ServiceModal({ service, onClose, onSaved }) {
   const handleKeyDown = (event) => {
     if (event.key === "Escape" && !submittingRef.current) {
       event.preventDefault();
-      onClose();
+      closeWithTransition(onClose);
     }
     if (event.key !== "Tab") return;
     const focusable = dialogRef.current.querySelectorAll(
@@ -148,7 +150,7 @@ function ServiceModal({ service, onClose, onSaved }) {
           ? "Service updated successfully."
           : "Service created successfully.",
       );
-      onSaved();
+      closeWithTransition(onSaved);
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to save service.");
       submittingRef.current = false;
@@ -191,10 +193,12 @@ function ServiceModal({ service, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      className={`modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 ${
+        isClosing ? "modal-closing" : ""
+      }`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !submittingRef.current)
-          onClose();
+          closeWithTransition(onClose);
       }}
     >
       <div
@@ -226,7 +230,7 @@ function ServiceModal({ service, onClose, onSaved }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => closeWithTransition(onClose)}
             disabled={submitting}
             aria-label="Close modal"
             {...tooltip("Close", "left")}
@@ -468,7 +472,7 @@ function ServiceModal({ service, onClose, onSaved }) {
           <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => closeWithTransition(onClose)}
               disabled={submitting}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >

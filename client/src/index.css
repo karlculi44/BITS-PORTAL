@@ -1,1 +1,436 @@
 @import "tailwindcss";
+
+@theme inline {
+  --color-slate-50: var(--app-surface-subtle);
+  --color-slate-100: var(--app-surface-muted);
+  --color-slate-200: var(--app-border);
+  --color-slate-300: var(--app-border-strong);
+  --color-slate-400: var(--app-text-muted);
+  --color-slate-500: var(--app-text-secondary);
+  --color-slate-600: var(--app-text-secondary);
+  --color-slate-700: var(--app-text);
+  --color-slate-800: var(--app-text);
+  --color-slate-900: #0b1220;
+  --color-blue-50: var(--app-primary-soft);
+  --color-blue-100: var(--app-primary-subtle);
+  --color-blue-500: var(--app-primary);
+  --color-blue-600: var(--app-primary);
+  --color-blue-700: var(--app-primary-text);
+  --color-blue-800: var(--app-primary-hover);
+  --color-red-50: var(--app-danger-bg);
+  --color-red-100: var(--app-danger-subtle);
+  --color-red-200: var(--app-danger-border);
+  --color-red-600: var(--app-danger-text);
+  --color-red-700: var(--app-danger-text);
+  --color-emerald-50: var(--app-success-bg);
+  --color-emerald-100: var(--app-success-subtle);
+  --color-emerald-600: var(--app-success-text);
+  --color-emerald-700: var(--app-success-text);
+  --color-purple-100: var(--app-purple-bg);
+  --color-purple-500: var(--app-primary);
+  --color-purple-600: var(--app-primary-hover);
+  --color-purple-700: var(--app-purple-text);
+}
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #f4f8fd;
+  --app-surface: #ffffff;
+  --app-surface-subtle: #f7faff;
+  --app-surface-muted: #edf4fb;
+  --app-border: #dce6f1;
+  --app-border-strong: #cbd8e8;
+  --app-text: #172b4d;
+  --app-text-secondary: #586b83;
+  --app-text-muted: #7688a0;
+  --app-primary: #3b82f6;
+  --app-primary-hover: #1d4ed8;
+  --app-primary-action: #2563eb;
+  --app-primary-action-hover: #1d4ed8;
+  --app-primary-text: #1d4ed8;
+  --app-primary-soft: #eaf3ff;
+  --app-primary-subtle: #dbeafe;
+  --app-danger-bg: #fff1f2;
+  --app-danger-subtle: #ffe4e6;
+  --app-danger-border: #fecdd3;
+  --app-danger-text: #be123c;
+  --app-success-bg: #ecfdf5;
+  --app-success-subtle: #d1fae5;
+  --app-success-text: #047857;
+  --app-purple-bg: #f3e8ff;
+  --app-purple-text: #7e22ce;
+  --app-shadow: 0 1px 3px rgb(23 43 77 / 7%), 0 8px 24px rgb(23 43 77 / 3%);
+  --network-node: rgb(59 130 246 / 28%);
+  --network-line: rgb(59 130 246 / 10%);
+  --app-scrollbar-thumb: rgb(100 116 139 / 62%);
+  --app-scrollbar-thumb-hover: rgb(71 85 105 / 78%);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #0b1220;
+  --app-surface: #111c2e;
+  --app-surface-subtle: #142238;
+  --app-surface-muted: #1b2c44;
+  --app-border: #293b55;
+  --app-border-strong: #344b69;
+  --app-text: #eaf2ff;
+  --app-text-secondary: #b0bfd4;
+  --app-text-muted: #8da3c0;
+  --app-primary: #60a5fa;
+  --app-primary-hover: #1d4ed8;
+  --app-primary-action: #2563eb;
+  --app-primary-action-hover: #1d4ed8;
+  --app-primary-text: #93c5fd;
+  --app-primary-soft: #172f4e;
+  --app-primary-subtle: #1e3a5f;
+  --app-danger-bg: #361c29;
+  --app-danger-subtle: #4a202e;
+  --app-danger-border: #693241;
+  --app-danger-text: #fda4af;
+  --app-success-bg: #12352d;
+  --app-success-subtle: #174838;
+  --app-success-text: #6ee7b7;
+  --app-purple-bg: #33244c;
+  --app-purple-text: #d8b4fe;
+  --app-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  --network-node: rgb(96 165 250 / 32%);
+  --network-line: rgb(96 165 250 / 13%);
+  --app-scrollbar-thumb: rgb(148 163 184 / 60%);
+  --app-scrollbar-thumb-hover: rgb(191 219 254 / 78%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--app-bg);
+  scroll-behavior: smooth;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+html::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: transparent;
+  background-clip: padding-box;
+  transition: background-color 180ms ease;
+}
+
+html[data-scrolling="true"] {
+  scrollbar-color: var(--app-scrollbar-thumb) transparent;
+}
+
+html[data-scrolling="true"]::-webkit-scrollbar-thumb {
+  background-color: var(--app-scrollbar-thumb);
+}
+
+html[data-scrolling="true"]::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-scrollbar-thumb-hover);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 2.5rem;
+  border-color: var(--app-border-strong);
+  border-radius: 0.55rem;
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--app-text-muted);
+  opacity: 1;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--app-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 20%, transparent);
+  outline: none;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: var(--app-surface-muted);
+  color: var(--app-text-muted);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--app-primary-action);
+}
+
+select option {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 82% 0%, color-mix(in srgb, var(--app-primary) 5%, transparent), transparent 38rem);
+}
+
+.login-page {
+  background:
+    radial-gradient(ellipse at 80% 16%, color-mix(in srgb, var(--app-primary) 7%, transparent), transparent 32rem);
+}
+
+.network-background {
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.72;
+}
+
+.sidebar {
+  box-shadow: var(--app-shadow);
+}
+
+.sidebar-link {
+  position: relative;
+}
+
+.sidebar-link.active {
+  background: var(--app-primary-soft);
+  color: var(--app-primary-text);
+}
+
+.sidebar-link.active::before {
+  position: absolute;
+  inset: 0 auto 0 -0.75rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--app-primary);
+  content: "";
+}
+
+.topbar {
+  background-color: color-mix(in srgb, var(--app-surface) 92%, transparent);
+}
+
+.page-content {
+  animation: page-enter 220ms ease-out both;
+}
+
+.app-shell section.rounded-lg,
+.app-shell .overflow-x-auto.rounded-lg,
+.app-shell .rounded-lg.border {
+  box-shadow: var(--app-shadow);
+}
+
+.app-shell table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--app-text);
+}
+
+.app-shell table thead {
+  background-color: var(--app-surface-muted);
+  color: var(--app-text-secondary);
+}
+
+.app-shell table th {
+  padding: 0.8rem 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+}
+
+.app-shell table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app-shell table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.app-shell table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.app-shell table tbody tr:hover {
+  background-color: var(--app-primary-soft);
+}
+
+.app-shell [role="dialog"] {
+  border: 1px solid var(--app-border);
+  animation: modal-enter 180ms ease-out both;
+}
+
+.modal-backdrop {
+  animation: backdrop-enter 180ms ease-out both;
+}
+
+.modal-backdrop.modal-closing {
+  animation: backdrop-exit 180ms ease-in both;
+}
+
+.app-shell .modal-backdrop.modal-closing [role="dialog"] {
+  animation: modal-exit 180ms ease-in both;
+}
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 60;
+  width: 100%;
+  height: 3px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, #3b82f6, #38bdf8);
+  box-shadow: 0 0 10px rgb(59 130 246 / 24%);
+  pointer-events: none;
+  transition: transform 100ms linear;
+}
+
+.scroll-progress[hidden] {
+  display: none;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(5px) scale(0.99);
+  }
+}
+
+.bg-blue-700 {
+  background-color: var(--app-primary-action);
+}
+
+.bg-white {
+  background-color: var(--app-surface);
+}
+
+.bg-blue-700:hover {
+  background-color: var(--app-primary-action-hover);
+}
+
+@media (max-width: 640px) {
+  .app-shell table {
+    min-width: 36rem;
+  }
+
+  .network-background {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
