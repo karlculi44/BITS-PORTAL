@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
-import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { ImageOff, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
 import ServiceModal from "../components/ServiceModal";
+import { tooltip } from "../components/tooltip";
 import { useAuth } from "../hooks/useAuth";
 import { getServices } from "../services/dashboardService";
-import { getServiceImageUrl } from "../services/serviceService";
+import SearchFilter from "../components/SearchFilter";
+import {
+  getServiceCategories,
+  getServiceImageUrl,
+} from "../services/serviceService";
 
 const isHttpUrl = (value) => {
   try {
@@ -37,14 +42,86 @@ function ServiceLogo({ image, title }) {
   );
 }
 
+function ServiceUrl({ url }) {
+  if (!url?.trim()) {
+    return <span className="text-slate-500">No URL available.</span>;
+  }
+  if (!isHttpUrl(url)) return <span>{url}</span>;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      {...tooltip("Open Service")}
+      className="text-blue-700 hover:underline"
+    >
+      {url}
+    </a>
+  );
+}
+
+const ADMIN_ONLY_MESSAGE = "Only admins can manage services";
+
+function ServiceActions({ service, isAdmin, onEdit }) {
+  return (
+    <div className="flex shrink-0 gap-1">
+      <span {...(!isAdmin && tooltip(ADMIN_ONLY_MESSAGE))}>
+        <button
+          type="button"
+          onClick={() => onEdit(service)}
+          disabled={!isAdmin}
+          aria-label={`Edit ${service.title}`}
+          {...(isAdmin && tooltip("Edit Service"))}
+          className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Pencil size={18} aria-hidden="true" />
+        </button>
+      </span>
+      <button
+        type="button"
+        aria-label={`Delete ${service.title}`}
+        {...tooltip("Delete Service")}
+        className="rounded-md p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-red-700"
+      >
+        <Trash2 size={18} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+const VIEW_OPTIONS = [
+  { value: "list", label: "List View", icon: List },
+  { value: "grid", label: "Grid View", icon: LayoutGrid },
+];
+
 function Services() {
   const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const [viewMode, setViewMode] = useState("list");
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [refresh, setRefresh] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getServiceCategories()
+      .then((result) => {
+        if (active) setCategories(result);
+      })
+      .catch(() => {
+        if (active) setCategories([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +145,28 @@ function Services() {
     };
   }, [refresh]);
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filtersActive = !!normalizedSearch || !!categoryFilter;
+  const filteredServices = services.filter(
+    (service) =>
+      (!categoryFilter || String(service.category_id) === categoryFilter) &&
+      (!normalizedSearch ||
+        [service.title, service.description].some((value) =>
+          value?.toLowerCase().includes(normalizedSearch),
+        )),
+  );
+  const categoryOptions = categories.map((category) => ({
+    value: String(category.id),
+    label: category.name,
+  }));
+  const categoryNames = Object.fromEntries(
+    categories.map((category) => [category.id, category.name]),
+  );
+  const openEditModal = (service) => {
+    setSelectedService(service);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -77,23 +176,62 @@ function Services() {
             Manage the services displayed in the BITS Portal.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedService(null);
-            setModalOpen(true);
-          }}
-          disabled={user?.role !== "admin"}
-          title={
-            user?.role !== "admin"
-              ? "Only admins can manage services"
-              : undefined
-          }
-          className="inline-flex items-center justify-center gap-2 self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus size={18} aria-hidden="true" />
-          Add Service
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchFilter
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search services"
+            searchLabel="Search services"
+            searchTooltip="Search services by name or description"
+            filterValue={categoryFilter}
+            onFilterChange={setCategoryFilter}
+            filterOptions={categoryOptions}
+            filterLabel="Filter by category"
+            filterTooltip="Filter services by category"
+            filterPlaceholder="All Categories"
+          />
+          <div
+            role="group"
+            aria-label="Services view"
+            className="inline-flex self-start rounded-md border border-slate-300 bg-white p-0.5"
+          >
+            {VIEW_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setViewMode(value)}
+                aria-label={label}
+                aria-pressed={viewMode === value}
+                {...tooltip(label)}
+                className={`rounded p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-blue-700 ${
+                  viewMode === value
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                <Icon size={18} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+          <span
+            className="self-start"
+            {...(!isAdmin && tooltip(ADMIN_ONLY_MESSAGE))}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedService(null);
+                setModalOpen(true);
+              }}
+              disabled={!isAdmin}
+              {...(isAdmin && tooltip("Add a new service"))}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus size={18} aria-hidden="true" />
+              Add Service
+            </button>
+          </span>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -107,7 +245,29 @@ function Services() {
           </p>
         ) : services.length === 0 ? (
           <p className="p-5 text-sm text-slate-500">No services available.</p>
-        ) : (
+        ) : filteredServices.length === 0 ? (
+          <div className="p-5 text-sm text-slate-500">
+            <p>
+              {normalizedSearch && categoryFilter
+                ? "No services match your search in the selected category."
+                : normalizedSearch
+                  ? "No services match your search."
+                  : "No services found in the selected category."}
+            </p>
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCategoryFilter("");
+                }}
+                className="mt-2 font-medium text-blue-700 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        ) : viewMode === "list" ? (
           <table className="w-full min-w-240 table-fixed text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
               <tr>
@@ -129,7 +289,7 @@ function Services() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {services.map((service) => (
+              {filteredServices.map((service) => (
                 <tr key={service.id}>
                   <td className="px-5 py-4">
                     <ServiceLogo
@@ -145,54 +305,57 @@ function Services() {
                     {service.description?.trim() || "No description available."}
                   </td>
                   <td className="break-all px-5 py-4">
-                    {service.url?.trim() && isHttpUrl(service.url) ? (
-                      <a
-                        href={service.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-700 hover:underline"
-                      >
-                        {service.url}
-                      </a>
-                    ) : service.url?.trim() ? (
-                      <span>{service.url}</span>
-                    ) : (
-                      <span className="text-slate-500">No URL available.</span>
-                    )}
+                    <ServiceUrl url={service.url} />
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedService(service);
-                          setModalOpen(true);
-                        }}
-                        disabled={user?.role !== "admin"}
-                        aria-label={`Edit ${service.title}`}
-                        title={
-                          user?.role === "admin"
-                            ? "Edit service"
-                            : "Only admins can manage services"
-                        }
-                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Pencil size={18} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete ${service.title}`}
-                        title="Delete service"
-                        className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700"
-                      >
-                        <Trash2 size={18} aria-hidden="true" />
-                      </button>
-                    </div>
+                    <ServiceActions
+                      service={service}
+                      isAdmin={isAdmin}
+                      onEdit={openEditModal}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        ) : (
+          <ul className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3">
+            {filteredServices.map((service) => (
+              <li
+                key={service.id}
+                className="flex h-56 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="flex items-start gap-3">
+                  <ServiceLogo
+                    key={service.image}
+                    image={service.image}
+                    title={service.title}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-medium text-slate-800">
+                      {service.title}
+                    </h3>
+                    {categoryNames[service.category_id] && (
+                      <span className="mt-1 inline-block max-w-full truncate rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        {categoryNames[service.category_id]}
+                      </span>
+                    )}
+                  </div>
+                  <ServiceActions
+                    service={service}
+                    isAdmin={isAdmin}
+                    onEdit={openEditModal}
+                  />
+                </div>
+                <p className="mt-3 line-clamp-3 flex-1 text-sm text-slate-600">
+                  {service.description?.trim() || "No description available."}
+                </p>
+                <div className="mt-3 truncate border-t border-slate-100 pt-3 text-sm">
+                  <ServiceUrl url={service.url} />
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       {modalOpen && (

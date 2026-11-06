@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 vi.mock("../../src/services/authService.js", () => ({
   loginUser: vi.fn(),
   getSessionUser: vi.fn(),
+  refreshUser: vi.fn(),
   logoutUser: vi.fn(),
 }));
 
@@ -20,6 +21,7 @@ describe("POST /api/auth/login", () => {
     beforeEach(() => {
       vi.stubEnv("JWT_ACCESS_SECRET", "test-access-secret");
       authService.getSessionUser.mockReset();
+      authService.refreshUser.mockReset();
       authService.logoutUser.mockReset();
       authService.logoutUser.mockResolvedValue(undefined);
     });
@@ -46,6 +48,33 @@ describe("POST /api/auth/login", () => {
       const expired = jwt.sign({ role: "staff" }, "test-access-secret", { subject: "7", expiresIn: -1 });
       expect((await request(app).get("/api/auth/session").set("Cookie", `accessToken=${expired}`)).status).toBe(401);
       expect(authService.getSessionUser).not.toHaveBeenCalled();
+    });
+
+    it("rotates the refresh cookie and returns a new access token", async () => {
+      const user = { id: 7, first_name: "Test", role: "staff", is_active: true };
+      authService.refreshUser.mockResolvedValueOnce({
+        user,
+        accessToken: "new-access-token",
+        refreshToken: "new-refresh-token",
+      });
+
+      const response = await request(app)
+        .post("/api/auth/refresh")
+        .set("Cookie", "refreshToken=old-refresh-token");
+
+      expect(response.status).toBe(200);
+      expect(authService.refreshUser).toHaveBeenCalledWith("old-refresh-token");
+      expect(response.body).toEqual({
+        message: "Session refreshed successfully",
+        data: user,
+        accessToken: "new-access-token",
+      });
+      expect(response.headers["set-cookie"]).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("accessToken=new-access-token"),
+          expect.stringContaining("refreshToken=new-refresh-token"),
+        ]),
+      );
     });
 
     it("revokes the refresh token and clears both cookies on logout", async () => {
@@ -101,6 +130,7 @@ describe("POST /api/auth/login", () => {
         role: "staff",
         is_active: true,
       },
+      accessToken: "access-token",
     });
     expect(response.headers["set-cookie"]).toEqual(
       expect.arrayContaining([
@@ -108,7 +138,6 @@ describe("POST /api/auth/login", () => {
         expect.stringContaining("refreshToken=refresh-token"),
       ]),
     );
-    expect(response.body).not.toHaveProperty("accessToken");
     expect(response.body).not.toHaveProperty("refreshToken");
   });
 

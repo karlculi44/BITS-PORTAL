@@ -90,7 +90,8 @@ describe("Services page", () => {
     expect(screen.getByText("No URL available.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete Email" }));
-    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(api.get).toHaveBeenCalledWith("/categories");
     expect(api.post).not.toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
     expect(api.delete).not.toHaveBeenCalled();
@@ -103,6 +104,89 @@ describe("Services page", () => {
     api.get.mockResolvedValue({ data: [] });
     renderApp();
     expect(await screen.findByText("No services available.")).toBeTruthy();
+  });
+
+  describe("Search and category filter", () => {
+    const services = [
+      { id: 1, title: "Student Portal", description: "Grades", category_id: 2 },
+      { id: 2, title: "Library", description: "For STUDENT use", category_id: 3 },
+      { id: 3, title: "Email", description: "Campus mail", category_id: 2 },
+    ];
+    const categories = [
+      { id: 2, name: "Academic Services", type: "service" },
+      { id: 3, name: "Support", type: "service" },
+      { id: 4, name: "Rules", type: "policy" },
+    ];
+
+    beforeEach(() => {
+      api.get.mockImplementation((path) => Promise.resolve({
+        data: path === "/services" ? services : categories,
+      }));
+    });
+
+    const search = (value) => fireEvent.change(
+      screen.getByLabelText("Search services"), { target: { value } },
+    );
+    const category = (value) => fireEvent.change(
+      screen.getByLabelText("Filter by category"), { target: { value } },
+    );
+
+    it("filters by title, description, category and both together", async () => {
+      renderApp();
+      await screen.findByText("Email");
+      await waitFor(() => expect(screen.getByRole("option", { name: "Support" })).toBeTruthy());
+      expect(screen.queryByRole("option", { name: "Rules" })).toBeNull();
+
+      search("  STUDENT ");
+      expect(screen.getByText("Student Portal")).toBeTruthy();
+      expect(screen.getByText("Library")).toBeTruthy();
+      expect(screen.queryByText("Email")).toBeNull();
+
+      category("2");
+      expect(screen.getByText("Student Portal")).toBeTruthy();
+      expect(screen.queryByText("Library")).toBeNull();
+
+      search("");
+      expect(screen.getByText("Email")).toBeTruthy();
+      expect(screen.queryByText("Library")).toBeNull();
+
+      search("stud");
+      category("");
+      expect(screen.getByText("Library")).toBeTruthy();
+      expect(screen.queryByText("Email")).toBeNull();
+    });
+
+    it("keeps filters and shows the same records when switching to grid view", async () => {
+      renderApp();
+      await screen.findByText("Email");
+      expect(screen.getByRole("table")).toBeTruthy();
+      await waitFor(() => expect(screen.getByRole("option", { name: "Support" })).toBeTruthy());
+
+      search("stud");
+      category("2");
+      fireEvent.click(screen.getByRole("button", { name: "Grid View" }));
+
+      expect(screen.queryByRole("table")).toBeNull();
+      expect(screen.getAllByRole("listitem")).toHaveLength(1);
+      expect(screen.getByRole("heading", { name: "Student Portal" })).toBeTruthy();
+      expect(screen.getByLabelText("Search services").value).toBe("stud");
+      expect(screen.getByLabelText("Filter by category").value).toBe("2");
+
+      fireEvent.click(screen.getByRole("button", { name: "List View" }));
+      expect(screen.getByRole("table")).toBeTruthy();
+    });
+
+    it("shows empty states with a clear filters action", async () => {
+      renderApp();
+      await screen.findByText("Email");
+      search("zzz");
+      expect(screen.getByText("No services match your search.")).toBeTruthy();
+      category("3");
+      expect(screen.getByText("No services match your search in the selected category.")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(screen.getByText("Email")).toBeTruthy();
+      expect(screen.getByLabelText("Search services").value).toBe("");
+    });
   });
 
   describe("Service modal", () => {

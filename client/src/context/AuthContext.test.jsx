@@ -12,6 +12,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "../hooks/useAuth";
+import { getAccessToken } from "../services/api";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import AdminLayout from "../layouts/AdminLayout";
@@ -26,6 +27,7 @@ vi.mock("../services/authService", () => ({
   login: vi.fn(),
   logout: vi.fn(),
   getMe: vi.fn(),
+  refresh: vi.fn(),
   googleLogin: vi.fn(),
 }));
 vi.mock("react-hot-toast", () => ({
@@ -78,7 +80,7 @@ function renderApp(path = "/login") {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => {});
-  authService.getMe.mockRejectedValue({ response: { status: 401 } });
+  authService.refresh.mockRejectedValue({ response: { status: 401 } });
   dashboardService.getDashboardData.mockResolvedValue({
     stats: {
       total_users: 0,
@@ -95,10 +97,13 @@ afterEach(cleanup);
 
 describe("AuthProvider", () => {
   it("logs in and exposes the user", async () => {
-    authService.login.mockResolvedValue({ message: "Login successful" });
+    authService.login.mockResolvedValue({
+      message: "Login successful",
+      data: user,
+      accessToken: "login-token",
+    });
     renderApp();
     await screen.findByText("signed out");
-    authService.getMe.mockResolvedValue({ user });
     fireEvent.change(screen.getByLabelText("Username"), {
       target: { value: " testuser " },
     });
@@ -113,12 +118,17 @@ describe("AuthProvider", () => {
     });
     expect(toast.success).toHaveBeenCalledWith("Login successful");
     expect(screen.getByTestId("status").textContent).toBe("Test");
+    expect(getAccessToken()).toBe("login-token");
   });
 
   it("restores a session on load", async () => {
-    authService.getMe.mockResolvedValue({ user });
+    authService.refresh.mockResolvedValue({
+      data: user,
+      accessToken: "restored-token",
+    });
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
+    expect(getAccessToken()).toBe("restored-token");
   });
 
   it("redirects unauthenticated users to login", async () => {
@@ -149,7 +159,10 @@ describe("AuthProvider", () => {
   });
 
   it("logs out and redirects to login", async () => {
-    authService.getMe.mockResolvedValue({ user });
+    authService.refresh.mockResolvedValue({
+      data: user,
+      accessToken: "session-token",
+    });
     authService.logout.mockResolvedValue({ message: "Logout successful" });
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
@@ -158,10 +171,14 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("location").textContent).toBe("/login"),
     );
     expect(screen.getByTestId("status").textContent).toBe("signed out");
+    expect(getAccessToken()).toBeNull();
   });
 
   it("keeps the user signed in if logout fails", async () => {
-    authService.getMe.mockResolvedValue({ user });
+    authService.refresh.mockResolvedValue({
+      data: user,
+      accessToken: "session-token",
+    });
     authService.logout.mockRejectedValue(new Error("network error"));
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
