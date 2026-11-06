@@ -22,16 +22,50 @@ function UserAvatar({ user }) {
   const image = user.profile_image
     ? getServiceImageUrl(user.profile_image)
     : "";
+  const [viewing, setViewing] = useState(false);
   const dimmed = user.is_active ? "" : "opacity-50";
+
+  useEffect(() => {
+    if (!viewing) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setViewing(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [viewing]);
 
   if (image && image !== failedImage) {
     return (
-      <img
-        src={image}
-        alt=""
-        onError={() => setFailedImage(image)}
-        className={`h-9 w-9 shrink-0 rounded-full object-cover ${dimmed}`}
-      />
+      <>
+        <button
+          type="button"
+          onClick={() => setViewing(true)}
+          aria-label={`View ${user.username}'s profile picture`}
+          className="shrink-0 cursor-zoom-in rounded-full"
+        >
+          <img
+            src={image}
+            alt=""
+            onError={() => setFailedImage(image)}
+            className={`h-9 w-9 rounded-full object-cover ${dimmed}`}
+          />
+        </button>
+        {viewing && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${user.username}'s profile picture`}
+            onClick={() => setViewing(false)}
+            className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
+          >
+            <img
+              src={image}
+              alt={`${user.username}'s profile picture`}
+              className="max-h-[85vh] max-w-full rounded-xl object-contain"
+            />
+          </div>
+        )}
+      </>
     );
   }
 

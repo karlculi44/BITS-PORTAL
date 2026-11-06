@@ -372,7 +372,9 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
               {...(isSelf && tooltip("You cannot change your own role"))}
               className={fieldClass}
             >
-              <option value="staff">Staff (limited by permissions below)</option>
+              <option value="staff">
+                Staff (limited by permissions below)
+              </option>
               <option value="admin">Admin</option>
             </select>
           </label>
