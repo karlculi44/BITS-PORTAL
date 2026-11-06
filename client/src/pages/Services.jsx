@@ -3,6 +3,15 @@ import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
 import ServiceModal from "../components/ServiceModal";
 import { useAuth } from "../hooks/useAuth";
 import { getServices } from "../services/dashboardService";
+import { getServiceImageUrl } from "../services/serviceService";
+
+const isHttpUrl = (value) => {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
 
 function ServiceLogo({ image, title }) {
   const [failed, setFailed] = useState(false);
@@ -20,7 +29,7 @@ function ServiceLogo({ image, title }) {
 
   return (
     <img
-      src={image}
+      src={getServiceImageUrl(image)}
       alt={`${title} logo`}
       onError={() => setFailed(true)}
       className="h-12 w-12 rounded-md border border-slate-200 object-contain"
@@ -75,7 +84,11 @@ function Services() {
             setModalOpen(true);
           }}
           disabled={user?.role !== "admin"}
-          title={user?.role !== "admin" ? "Only admins can manage services" : undefined}
+          title={
+            user?.role !== "admin"
+              ? "Only admins can manage services"
+              : undefined
+          }
           className="inline-flex items-center justify-center gap-2 self-start rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus size={18} aria-hidden="true" />
@@ -95,7 +108,7 @@ function Services() {
         ) : services.length === 0 ? (
           <p className="p-5 text-sm text-slate-500">No services available.</p>
         ) : (
-          <table className="w-full min-w-160 table-fixed text-left text-sm">
+          <table className="w-full min-w-240 table-fixed text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
               <tr>
                 <th scope="col" className="w-24 px-5 py-3">
@@ -107,6 +120,9 @@ function Services() {
                 <th scope="col" className="px-5 py-3">
                   Description
                 </th>
+                <th scope="col" className="w-1/4 px-5 py-3">
+                  URL
+                </th>
                 <th scope="col" className="w-28 px-5 py-3">
                   Actions
                 </th>
@@ -116,13 +132,33 @@ function Services() {
               {services.map((service) => (
                 <tr key={service.id}>
                   <td className="px-5 py-4">
-                    <ServiceLogo key={service.image} image={service.image} title={service.title} />
+                    <ServiceLogo
+                      key={service.image}
+                      image={service.image}
+                      title={service.title}
+                    />
                   </td>
                   <td className="wrap-break-word px-5 py-4 font-medium text-slate-800">
                     {service.title}
                   </td>
                   <td className="wrap-break-word px-5 py-4 text-slate-600">
                     {service.description?.trim() || "No description available."}
+                  </td>
+                  <td className="break-all px-5 py-4">
+                    {service.url?.trim() && isHttpUrl(service.url) ? (
+                      <a
+                        href={service.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 hover:underline"
+                      >
+                        {service.url}
+                      </a>
+                    ) : service.url?.trim() ? (
+                      <span>{service.url}</span>
+                    ) : (
+                      <span className="text-slate-500">No URL available.</span>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex gap-1">
@@ -134,7 +170,11 @@ function Services() {
                         }}
                         disabled={user?.role !== "admin"}
                         aria-label={`Edit ${service.title}`}
-                        title={user?.role === "admin" ? "Edit service" : "Only admins can manage services"}
+                        title={
+                          user?.role === "admin"
+                            ? "Edit service"
+                            : "Only admins can manage services"
+                        }
                         className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Pencil size={18} aria-hidden="true" />

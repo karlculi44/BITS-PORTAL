@@ -4,6 +4,7 @@ import { ImageOff, X } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   createService,
+  getServiceImageUrl,
   getServiceCategories,
   updateService,
 } from "../services/serviceService";
@@ -16,7 +17,6 @@ const formValues = (service) => ({
   title: service?.title || "",
   url: service?.url || "",
   description: service?.description || "",
-  image: service?.image || "",
 });
 
 function ServiceModal({ service, onClose, onSaved }) {
@@ -24,24 +24,50 @@ function ServiceModal({ service, onClose, onSaved }) {
     register,
     handleSubmit,
     reset,
+    setError,
+    clearErrors,
     control,
     formState: { errors },
   } = useForm({
     defaultValues: formValues(service),
   });
-  const image = useWatch({ control, name: "image" });
   const categoryId = useWatch({ control, name: "category_id" });
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryError, setCategoryError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [failedImage, setFailedImage] = useState("");
+  const [imageSelection, setImageSelection] = useState(null);
+  const [draggingImage, setDraggingImage] = useState(false);
   const submittingRef = useRef(false);
   const dialogRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const previewUrlRef = useRef(null);
+  const currentServiceId = service?.id ?? null;
+  const selectedImage =
+    imageSelection?.serviceId === currentServiceId
+      ? imageSelection.file
+      : null;
+  const imagePreview =
+    imageSelection?.serviceId === currentServiceId
+      ? imageSelection.previewUrl
+      : getServiceImageUrl(service?.image);
 
   useEffect(() => {
     reset(formValues(service));
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
   }, [service, reset]);
+
+  useEffect(
+    () => () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -103,13 +129,13 @@ function ServiceModal({ service, onClose, onSaved }) {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
-    const payload = {
-      category_id: Number(form.category_id),
-      title: form.title.trim(),
-      url: form.url.trim(),
-      description: form.description.trim(),
-      image: form.image.trim() || null,
-    };
+    const payload = new FormData();
+    payload.append("category_id", String(Number(form.category_id)));
+    payload.append("title", form.title.trim());
+    payload.append("url", form.url.trim());
+    payload.append("description", form.description.trim());
+    if (selectedImage) payload.append("image", selectedImage);
+
     try {
       if (service) {
         await updateService(service.id, payload);
@@ -128,6 +154,39 @@ function ServiceModal({ service, onClose, onSaved }) {
       setSubmitting(false);
     }
   };
+
+  const selectImage = (file) => {
+    if (!file) return;
+
+    const supportedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!supportedTypes.includes(file.type)) {
+      setError("image", {
+        type: "validate",
+        message: "Choose a PNG, JPG, JPEG, or WebP image.",
+      });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError("image", {
+        type: "validate",
+        message: "Service logos must be 2 MB or smaller.",
+      });
+      return;
+    }
+
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const previewUrl = URL.createObjectURL(file);
+    previewUrlRef.current = previewUrl;
+    setImageSelection({
+      serviceId: currentServiceId,
+      file,
+      previewUrl,
+    });
+    setFailedImage("");
+    clearErrors("image");
+  };
+
+  const imageField = register("image");
 
   return (
     <div
@@ -274,8 +333,11 @@ function ServiceModal({ service, onClose, onSaved }) {
                     validate: (value) => {
                       if (!value.trim()) return "Service URL is required.";
                       try {
-                        new URL(value.trim());
-                        return true;
+                        const protocol = new URL(value.trim()).protocol;
+                        return (
+                          ["http:", "https:"].includes(protocol) ||
+                          "Enter a valid service URL."
+                        );
                       } catch {
                         return "Enter a valid service URL.";
                       }
@@ -322,40 +384,80 @@ function ServiceModal({ service, onClose, onSaved }) {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Service Logo
-                <input
-                  {...register("image", {
-                    onChange: () => setFailedImage(""),
-                  })}
-                  placeholder="Image URL"
-                  disabled={submitting}
-                  className={fieldClass}
-                />
-              </label>
-              <p className="mt-2 text-xs text-slate-500">
-                Enter an image URL. File uploads are not supported by the
-                current backend.
-              </p>
-              <div className="mt-4 flex h-40 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 p-3">
-                {image.trim() && image !== failedImage ? (
-                  <img
-                    src={image}
-                    alt="Service logo preview"
-                    onError={() => setFailedImage(image)}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
-                  <div className="text-center text-sm text-slate-500">
-                    <ImageOff
-                      size={24}
-                      aria-hidden="true"
-                      className="mx-auto mb-2"
+              <div>
+                <p className="block text-sm font-medium text-slate-700">
+                  Service Logo
+                </p>
+                <div
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDraggingImage(true);
+                  }}
+                  onDragLeave={() => setDraggingImage(false)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setDraggingImage(false);
+                    selectImage(event.dataTransfer.files?.[0]);
+                  }}
+                  className={`mt-2 flex min-h-40 flex-col items-center justify-center rounded-md border border-dashed p-3 ${
+                    draggingImage
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-slate-300 bg-slate-50"
+                  }`}
+                >
+                  {imagePreview && imagePreview !== failedImage ? (
+                    <img
+                      src={imagePreview}
+                      alt="Service logo preview"
+                      onError={() => setFailedImage(imagePreview)}
+                      className="max-h-full max-w-full object-contain"
                     />
-                    {image && image === failedImage
-                      ? "Unable to load image preview."
-                      : "No logo selected."}
-                  </div>
+                  ) : (
+                    <div className="text-center text-sm text-slate-500">
+                      <ImageOff
+                        size={24}
+                        aria-hidden="true"
+                        className="mx-auto mb-2"
+                      />
+                      {imagePreview && imagePreview === failedImage
+                        ? "Unable to load image preview."
+                        : "No logo selected."}
+                    </div>
+                  )}
+                  <input
+                    {...imageField}
+                    onChange={(event) => {
+                      imageField.onChange(event);
+                      selectImage(event.target.files?.[0]);
+                    }}
+                    ref={(element) => {
+                      imageField.ref(element);
+                      imageInputRef.current = element;
+                    }}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    aria-label="Service Logo"
+                    disabled={submitting}
+                    className="sr-only"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={submitting}
+                    className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {selectedImage || service?.image
+                      ? "Choose another image"
+                      : "Choose image"}
+                  </button>
+                  <p className="mt-2 text-xs text-slate-500">
+                    PNG, JPG, JPEG, or WebP. Maximum size: 2 MB.
+                  </p>
+                </div>
+                {errors.image && (
+                  <p role="alert" className="mt-2 text-sm text-red-700">
+                    {errors.image.message}
+                  </p>
                 )}
               </div>
             </div>

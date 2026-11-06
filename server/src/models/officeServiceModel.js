@@ -68,6 +68,19 @@ export const searchServices = async (term) => {
   return result.rows;
 };
 
+export const isServiceImageReferenced = async (image) => {
+  const result = await pool.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM services
+      WHERE image = $1
+    ) AS referenced`,
+    [image],
+  );
+
+  return result.rows[0].referenced;
+};
+
 export const updateService = async (serviceId, service) => {
   const updates = [];
   const values = [];
@@ -106,34 +119,33 @@ export const updateService = async (serviceId, service) => {
 
   updates.push("updated_at = CURRENT_TIMESTAMP");
   values.push(serviceId);
+  const serviceIdIndex = values.length;
+  const ctes = [
+    `existing_service AS MATERIALIZED (
+      SELECT id, image
+      FROM services
+      WHERE id = $${serviceIdIndex}
+      FOR UPDATE
+    )`,
+  ];
+  let from = "existing_service";
 
-  const query =
-    categoryIdIndex === undefined
-      ? `UPDATE services
-      SET ${updates.join(", ")}
-      WHERE id = $${values.length}
-      RETURNING
-        services.id,
-        services.title,
-        services.url,
-        services.image,
-        services.description,
-        services.sort_order,
-        services.category_id,
-        services.is_default,
-        services.created_at,
-        services.updated_at`
-      : `WITH service_category AS MATERIALIZED (
-        SELECT id
-        FROM categories
-        WHERE id = $${categoryIdIndex}
-          AND type = 'service'
-        FOR SHARE
-      )
+  if (categoryIdIndex !== undefined) {
+    ctes.push(`service_category AS MATERIALIZED (
+      SELECT id
+      FROM categories
+      WHERE id = $${categoryIdIndex}
+        AND type = 'service'
+      FOR SHARE
+    )`);
+    from += ", service_category";
+  }
+
+  const query = `WITH ${ctes.join(", ")}
       UPDATE services
       SET ${updates.join(", ")}
-      FROM service_category
-      WHERE services.id = $${values.length}
+      FROM ${from}
+      WHERE services.id = existing_service.id
       RETURNING
         services.id,
         services.title,
@@ -144,7 +156,8 @@ export const updateService = async (serviceId, service) => {
         services.category_id,
         services.is_default,
         services.created_at,
-        services.updated_at`;
+        services.updated_at,
+        existing_service.image AS previous_image`;
 
   const result = await pool.query(query, values);
 

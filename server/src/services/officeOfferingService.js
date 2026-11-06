@@ -1,28 +1,34 @@
 import * as officeServiceModel from "../models/officeServiceModel.js";
 import AppError from "../utils/AppError.js";
+import {
+  formatServiceImage,
+  formatServiceImages,
+  isManagedServiceLogo,
+  removeServiceLogo,
+} from "../utils/serviceLogo.js";
 
 export const getAllServices = async () => {
-  return await officeServiceModel.getAllServices();
+  return formatServiceImages(await officeServiceModel.getAllServices());
 };
 
-export const createService = async (service) => {
-  const category = await officeServiceModel.getCategoryById(
-    service.category_id,
-  );
-
-  if (!category) {
-    throw new AppError("Category not found", 404);
-  }
-
-  if (category.type !== "service") {
-    throw new AppError("Category must be a service category", 400);
-  }
-
+export const createService = async (service, uploadedLogo) => {
   try {
+    const category = await officeServiceModel.getCategoryById(
+      service.category_id,
+    );
+
+    if (!category) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (category.type !== "service") {
+      throw new AppError("Category must be a service category", 400);
+    }
+
     const createdService = await officeServiceModel.insertService(service);
 
     if (createdService) {
-      return createdService;
+      return formatServiceImage(createdService);
     }
 
     const currentCategory = await officeServiceModel.getCategoryById(
@@ -39,6 +45,15 @@ export const createService = async (service) => {
 
     throw new Error("Service was not created");
   } catch (error) {
+    if (uploadedLogo) {
+      try {
+        await removeServiceLogo(uploadedLogo.filename);
+      } catch (cleanupError) {
+        cleanupError.cause = error;
+        throw cleanupError;
+      }
+    }
+
     if (error.code === "23503") {
       throw new AppError("Category not found", 404);
     }
@@ -48,10 +63,19 @@ export const createService = async (service) => {
 };
 
 export const searchServices = async (term) => {
-  return await officeServiceModel.searchServices(term);
+  return formatServiceImages(await officeServiceModel.searchServices(term));
 };
 
-export const updateService = async (serviceId, service) => {
+const removeUnusedServiceLogo = async (image) => {
+  if (
+    isManagedServiceLogo(image) &&
+    !(await officeServiceModel.isServiceImageReferenced(image))
+  ) {
+    await removeServiceLogo(image);
+  }
+};
+
+export const updateService = async (serviceId, service, uploadedLogo) => {
   const validateCategory = async () => {
     const category = await officeServiceModel.getCategoryById(
       service.category_id,
@@ -66,12 +90,14 @@ export const updateService = async (serviceId, service) => {
     }
   };
 
-  if (service.category_id !== undefined) {
-    await validateCategory();
-  }
+  let updatedService;
 
   try {
-    const updatedService = await officeServiceModel.updateService(
+    if (service.category_id !== undefined) {
+      await validateCategory();
+    }
+
+    updatedService = await officeServiceModel.updateService(
       serviceId,
       service,
     );
@@ -83,15 +109,35 @@ export const updateService = async (serviceId, service) => {
 
       throw new AppError("Service not found", 404);
     }
-
-    return updatedService;
   } catch (error) {
+    if (uploadedLogo) {
+      try {
+        await removeServiceLogo(uploadedLogo.filename);
+      } catch (cleanupError) {
+        cleanupError.cause = error;
+        throw cleanupError;
+      }
+    }
+
     if (error.code === "23503") {
       throw new AppError("Category not found", 404);
     }
 
     throw error;
   }
+
+  let serviceResult = updatedService;
+
+  if (Object.hasOwn(updatedService, "previous_image")) {
+    const { previous_image: previousImage, ...updatedResult } = updatedService;
+    serviceResult = updatedResult;
+
+    if (service.image !== undefined && service.image !== previousImage) {
+      await removeUnusedServiceLogo(previousImage);
+    }
+  }
+
+  return formatServiceImage(serviceResult);
 };
 
 export const setDefaultService = async (serviceId) => {
@@ -101,7 +147,7 @@ export const setDefaultService = async (serviceId) => {
     throw new AppError("Service not found", 404);
   }
 
-  return service;
+  return formatServiceImage(service);
 };
 
 export const deleteService = async (serviceId) => {
@@ -111,5 +157,7 @@ export const deleteService = async (serviceId) => {
     throw new AppError("Service not found", 404);
   }
 
-  return service;
+  await removeUnusedServiceLogo(service.image);
+
+  return formatServiceImage(service);
 };

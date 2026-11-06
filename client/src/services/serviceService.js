@@ -1,5 +1,19 @@
 import api from "./api";
 
+export const getServiceImageUrl = (image) => {
+  if (!image?.trim()) return "";
+
+  try {
+    const apiBase = new URL(
+      api.defaults.baseURL || "/api",
+      window.location.origin,
+    );
+    return new URL(image, apiBase).toString();
+  } catch {
+    return image;
+  }
+};
+
 export const getServiceCategories = async () => {
   const response = await api.get("/categories");
   if (!Array.isArray(response.data)) {

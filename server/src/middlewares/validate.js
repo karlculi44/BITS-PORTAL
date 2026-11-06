@@ -1,8 +1,18 @@
+import { removeServiceLogo } from "../utils/serviceLogo.js";
+
 const validate = (schema) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
+      if (req.file?.filename) {
+        try {
+          await removeServiceLogo(req.file.filename);
+        } catch (error) {
+          return next(error);
+        }
+      }
+
       return res.status(400).json({
         errors: result.error.issues,
       });

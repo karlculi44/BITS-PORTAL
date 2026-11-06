@@ -13,6 +13,8 @@ vi.mock("react-hot-toast", () => ({
 }));
 
 const user = { first_name: "Test", last_name: "Admin", role: "admin" };
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
 
 function renderApp() {
   window.history.pushState({}, "", "/services");
@@ -24,6 +26,24 @@ function renderApp() {
 }
 
 beforeEach(() => {
+  if (!URL.createObjectURL) {
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:service-logo-preview"),
+    });
+  } else {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue(
+      "blob:service-logo-preview",
+    );
+  }
+  if (!URL.revokeObjectURL) {
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    });
+  } else {
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+  }
   vi.spyOn(api, "get");
   vi.spyOn(api, "post");
   vi.spyOn(api, "patch");
@@ -33,6 +53,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  if (!originalCreateObjectURL) delete URL.createObjectURL;
+  if (!originalRevokeObjectURL) delete URL.revokeObjectURL;
 });
 
 describe("Services page", () => {
@@ -49,8 +71,8 @@ describe("Services page", () => {
 
     resolveRequest({
       data: [
-        { id: 1, title: "Email", description: "Campus email", image: "https://example.com/email.png" },
-        { id: 2, title: "Library", description: "  ", image: null },
+        { id: 1, title: "Email", description: "Campus email", image: "https://example.com/email.png", url: "https://example.com/email" },
+        { id: 2, title: "Library", description: "  ", image: null, url: "" },
       ],
     });
 
@@ -59,8 +81,13 @@ describe("Services page", () => {
     expect(screen.getByText("Library")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Email logo" }).getAttribute("src"))
       .toBe("https://example.com/email.png");
+    const serviceLink = screen.getByRole("link", { name: "https://example.com/email" });
+    expect(serviceLink.getAttribute("href")).toBe("https://example.com/email");
+    expect(serviceLink.getAttribute("target")).toBe("_blank");
+    expect(serviceLink.getAttribute("rel")).toBe("noopener noreferrer");
     expect(screen.getByLabelText("No service logo")).toBeTruthy();
     expect(screen.getByText("No description available.")).toBeTruthy();
+    expect(screen.getByText("No URL available.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete Email" }));
     expect(api.get).toHaveBeenCalledTimes(1);
@@ -98,7 +125,7 @@ describe("Services page", () => {
       toast.error.mockClear();
     });
 
-    it("creates a service, filters categories, previews the logo and refreshes the list", async () => {
+    it("creates a service with an uploaded logo and refreshes the list", async () => {
       api.post.mockResolvedValue({ data: { message: "Created" } });
       renderApp();
       await screen.findByText("Campus email");
@@ -110,16 +137,27 @@ describe("Services page", () => {
       fireEvent.change(screen.getByLabelText("Service Name"), { target: { value: "Portal" } });
       fireEvent.change(screen.getByLabelText("Service URL"), { target: { value: "https://example.com/portal" } });
       fireEvent.change(screen.getByLabelText("Summary"), { target: { value: "A portal" } });
-      fireEvent.change(screen.getByLabelText("Service Logo"), { target: { value: "https://example.com/new.png" } });
-      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("https://example.com/new.png");
+      const logo = new File(["png data"], "new.png", { type: "image/png" });
+      fireEvent.change(screen.getByLabelText("Service Logo"), {
+        target: { files: [logo] },
+      });
+      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("blob:service-logo-preview");
       api.get.mockImplementation((path) => path === "/services"
         ? Promise.resolve({ data: [service, { ...service, id: 4, title: "Portal" }] })
         : Promise.resolve({ data: categories }));
       fireEvent.click(screen.getByRole("button", { name: "Deploy Service" }));
-      await waitFor(() => expect(api.post).toHaveBeenCalledWith("/services", {
-        category_id: 2, title: "Portal", url: "https://example.com/portal",
-        description: "A portal", image: "https://example.com/new.png",
-      }));
+      await waitFor(() =>
+        expect(api.post).toHaveBeenCalledWith(
+          "/services",
+          expect.any(FormData),
+        ),
+      );
+      const formData = api.post.mock.calls[0][1];
+      expect(formData.get("category_id")).toBe("2");
+      expect(formData.get("title")).toBe("Portal");
+      expect(formData.get("url")).toBe("https://example.com/portal");
+      expect(formData.get("description")).toBe("A portal");
+      expect(formData.get("image")).toBe(logo);
       await waitFor(() => expect(api.get.mock.calls.filter(([path]) => path === "/services")).toHaveLength(2));
       expect(await screen.findByText("Portal")).toBeTruthy();
       expect(screen.queryByRole("dialog")).toBeNull();
@@ -139,10 +177,18 @@ describe("Services page", () => {
       expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe(service.image);
       fireEvent.change(screen.getByLabelText("Service Name"), { target: { value: "New email" } });
       fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
-      await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/services/1", {
-        category_id: 2, title: "New email", url: service.url,
-        description: service.description, image: service.image,
-      }));
+      await waitFor(() =>
+        expect(api.patch).toHaveBeenCalledWith(
+          "/services/1",
+          expect.any(FormData),
+        ),
+      );
+      const formData = api.patch.mock.calls[0][1];
+      expect(formData.get("category_id")).toBe("2");
+      expect(formData.get("title")).toBe("New email");
+      expect(formData.get("url")).toBe(service.url);
+      expect(formData.get("description")).toBe(service.description);
+      expect(formData.has("image")).toBe(false);
       await waitFor(() => expect(api.get.mock.calls.filter(([path]) => path === "/services")).toHaveLength(2));
       expect(toast.success).toHaveBeenCalledWith("Service updated successfully.");
     });
@@ -160,20 +206,73 @@ describe("Services page", () => {
       expect(api.patch).not.toHaveBeenCalled();
     });
 
-    it("can clear an existing logo and previews replacements", async () => {
+    it("previews and submits a replacement logo", async () => {
       api.patch.mockResolvedValue({ data: {} });
       renderApp();
       fireEvent.click(await screen.findByRole("button", { name: "Edit Email" }));
       await screen.findByRole("option", { name: "Tools" });
-      fireEvent.change(screen.getByLabelText("Service Logo"), { target: { value: "https://example.com/replacement.png" } });
-      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("https://example.com/replacement.png");
-      fireEvent.change(screen.getByLabelText("Service Logo"), { target: { value: "" } });
-      expect(screen.getByText("No logo selected.")).toBeTruthy();
+      const replacement = new File(["webp data"], "replacement.webp", {
+        type: "image/webp",
+      });
+      fireEvent.change(screen.getByLabelText("Service Logo"), {
+        target: { files: [replacement] },
+      });
+      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("blob:service-logo-preview");
       fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
-      await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/services/1", {
-        category_id: 2, title: service.title, url: service.url,
-        description: service.description, image: null,
-      }));
+      await waitFor(() =>
+        expect(api.patch).toHaveBeenCalledWith(
+          "/services/1",
+          expect.any(FormData),
+        ),
+      );
+      expect(api.patch.mock.calls[0][1].get("image")).toBe(replacement);
+    });
+
+    it("supports drag-and-drop logo selection and rejects oversized files", async () => {
+      renderApp();
+      fireEvent.click(await screen.findByRole("button", { name: "Add Service" }));
+      await screen.findByRole("option", { name: "Tools" });
+      const dropTarget = screen.getByText("No logo selected.").parentElement;
+      const logo = new File(["png data"], "drop.png", { type: "image/png" });
+      fireEvent.drop(dropTarget, { dataTransfer: { files: [logo] } });
+      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("blob:service-logo-preview");
+
+      const oversized = new File(
+        [new Uint8Array(2 * 1024 * 1024 + 1)],
+        "large.png",
+        { type: "image/png" },
+      );
+      fireEvent.change(screen.getByLabelText("Service Logo"), {
+        target: { files: [oversized] },
+      });
+      expect(screen.getByRole("alert").textContent).toBe(
+        "Service logos must be 2 MB or smaller.",
+      );
+
+      fireEvent.change(screen.getByLabelText("Service Logo"), {
+        target: { files: [logo] },
+      });
+      fireEvent.change(screen.getByLabelText("Category"), {
+        target: { value: "2" },
+      });
+      fireEvent.change(screen.getByLabelText("Service Name"), {
+        target: { value: "Dropped logo" },
+      });
+      fireEvent.change(screen.getByLabelText("Service URL"), {
+        target: { value: "https://example.com/dropped" },
+      });
+      fireEvent.change(screen.getByLabelText("Summary"), {
+        target: { value: "A dropped logo service" },
+      });
+      api.post.mockResolvedValue({ data: { message: "Created" } });
+      fireEvent.click(screen.getByRole("button", { name: "Deploy Service" }));
+      await waitFor(() =>
+        expect(api.post).toHaveBeenCalledWith(
+          "/services",
+          expect.any(FormData),
+        ),
+      );
+      expect(api.post.mock.calls[0][1].get("image")).toBe(logo);
     });
 
     it("allows Escape and backdrop dismissal", async () => {
