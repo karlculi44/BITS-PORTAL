@@ -34,6 +34,8 @@ describe("GET /api/dashboard", () => {
       inactive_categories: 1,
       total_services: 8,
       total_policies: 3,
+      services_by_category: [{ name: "IT Services", count: 5 }],
+      policies_by_category: [{ name: "Academic Policies", count: 3 }],
     };
     pool.query.mockResolvedValueOnce({ rows: [dashboardData] });
 
@@ -51,6 +53,14 @@ describe("GET /api/dashboard", () => {
     expect(pool.query.mock.calls[0][0]).toContain("FROM categories");
     expect(pool.query.mock.calls[0][0]).toContain("FROM services");
     expect(pool.query.mock.calls[0][0]).toContain("FROM policies");
+    expect(pool.query.mock.calls[0][0]).toContain("categories.type = 'service'");
+    expect(pool.query.mock.calls[0][0]).toContain("categories.type = 'policy'");
+    expect(response.body.data.services_by_category).toEqual([
+      { name: "IT Services", count: 5 },
+    ]);
+    expect(response.body.data.policies_by_category).toEqual([
+      { name: "Academic Policies", count: 3 },
+    ]);
   });
 
   it("does not allow staff to access dashboard data", async () => {

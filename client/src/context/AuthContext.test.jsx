@@ -23,6 +23,7 @@ import * as dashboardService from "../services/dashboardService";
 
 vi.mock("../services/dashboardService", () => ({
   getDashboardData: vi.fn(),
+  getRecentServices: vi.fn(),
 }));
 vi.mock("../services/authService", () => ({
   login: vi.fn(),
@@ -87,14 +88,13 @@ beforeEach(() => {
   dashboardService.getDashboardData.mockResolvedValue({
     stats: {
       total_users: 0,
-      active_users: 0,
-      total_services: 0,
       total_policies: 0,
       total_categories: 0,
     },
-    recentUsers: [],
-    recentServices: [],
+    servicesByCategory: [],
+    policiesByCategory: [],
   });
+  dashboardService.getRecentServices.mockResolvedValue([]);
 });
 afterEach(cleanup);
 
@@ -131,6 +131,14 @@ describe("AuthProvider", () => {
     });
     renderApp("/dashboard");
     await screen.findByText("Welcome, Test");
+    const totalUsers = await screen.findByText("Total Users");
+    const servicesChart = screen.getByRole("heading", {
+      name: "Services by Category",
+    });
+    expect(
+      totalUsers.compareDocumentPosition(servicesChart) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(getAccessToken()).toBe("restored-token");
   });
 

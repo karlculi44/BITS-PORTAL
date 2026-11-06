@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
-import {
-  FolderTree,
-  Info,
-  ScrollText,
-  Server,
-  UserCheck,
-  Users,
-} from "lucide-react";
+import { FolderTree, Info, ScrollText, Users } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import StatCard from "../components/StatCard";
-import { getDashboardData } from "../services/dashboardService";
+import CategoryDistributionChart from "../components/CategoryDistributionChart";
+import {
+  getDashboardData,
+  getRecentServices,
+} from "../services/dashboardService";
 
 const formatDate = (value) => new Date(value).toLocaleString();
 
@@ -50,6 +47,25 @@ function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [recentServices, setRecentServices] = useState([]);
+  const [recentServicesError, setRecentServicesError] = useState("");
+  const [recentServicesLoading, setRecentServicesLoading] = useState(true);
+  const [recentServicesRetryCount, setRecentServicesRetryCount] = useState(0);
+
+  const retryDashboard = () => {
+    setData(null);
+    setError("");
+    setLoading(true);
+    setRetryCount((count) => count + 1);
+  };
+
+  const retryRecentServices = () => {
+    setRecentServices([]);
+    setRecentServicesError("");
+    setRecentServicesLoading(true);
+    setRecentServicesRetryCount((count) => count + 1);
+  };
 
   useEffect(() => {
     let active = true;
@@ -69,7 +85,27 @@ function Dashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [retryCount]);
+
+  useEffect(() => {
+    let active = true;
+    getRecentServices()
+      .then((result) => {
+        if (active) setRecentServices(result);
+      })
+      .catch((err) => {
+        if (active)
+          setRecentServicesError(
+            err.response?.data?.message || "Unable to load recent services.",
+          );
+      })
+      .finally(() => {
+        if (active) setRecentServicesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [recentServicesRetryCount]);
 
   const welcome = (
     <h2 className="text-xl font-semibold text-slate-800">
@@ -77,37 +113,16 @@ function Dashboard() {
     </h2>
   );
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {welcome}
-        <p className="text-slate-500">Loading dashboard...</p>
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="space-y-4">
-        {welcome}
-        <p
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-        >
-          {error}
-        </p>
-      </div>
-    );
-  }
-
-  const { stats, recentUsers, recentServices } = data;
-  const cards = [
-    { label: "Total Users", value: stats.total_users, icon: Users },
-    { label: "Active Users", value: stats.active_users, icon: UserCheck },
-    { label: "Total Services", value: stats.total_services, icon: Server },
-    { label: "Total Policies", value: stats.total_policies, icon: ScrollText },
+  const cards = data && [
+    { label: "Total Users", value: data.stats.total_users, icon: Users },
+    {
+      label: "Total Policies",
+      value: data.stats.total_policies,
+      icon: ScrollText,
+    },
     {
       label: "Total Categories",
-      value: stats.total_categories,
+      value: data.stats.total_categories,
       icon: FolderTree,
     },
   ];
@@ -115,36 +130,71 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       {welcome}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {cards.map((card) => (
-          <StatCard key={card.label} {...card} />
-        ))}
+      {data && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {cards.map((card) => (
+            <StatCard key={card.label} {...card} />
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CategoryDistributionChart
+          title="Services by Category"
+          description="Distribution of registered services across categories."
+          categories={data?.servicesByCategory ?? []}
+          filename="services-by-category"
+          loading={loading}
+          error={error}
+          onRetry={retryDashboard}
+        />
+        <CategoryDistributionChart
+          title="Policies by Category"
+          description="Distribution of registered policies across categories."
+          categories={data?.policiesByCategory ?? []}
+          filename="policies-by-category"
+          loading={loading}
+          error={error}
+          onRetry={retryDashboard}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Recently Created Users">
-          <RecentList
-            items={recentUsers}
-            primary={(u) => `${u.first_name} ${u.last_name} (${u.username})`}
-            secondary={(u) => formatDate(u.created_at)}
-          />
-        </Section>
         <Section title="Recently Added Services">
-          <RecentList
-            items={recentServices}
-            primary={(s) => s.title}
-            secondary={(s) => formatDate(s.created_at)}
-          />
+          {recentServicesLoading ? (
+            <p className="text-sm text-slate-500">Loading recent services...</p>
+          ) : recentServicesError ? (
+            <div className="space-y-3">
+              <p role="alert" className="text-sm text-red-600">
+                {recentServicesError}
+              </p>
+              <button
+                type="button"
+                className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                onClick={retryRecentServices}
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <RecentList
+              items={recentServices}
+              primary={(service) => service.title}
+              secondary={(service) => formatDate(service.created_at)}
+            />
+          )}
         </Section>
       </div>
 
-      <Section title="Recent Activity">
-        <p className="flex items-center gap-2 text-sm text-slate-500">
-          <Info size={16} />
-          Activity logs are not available yet: the backend has no logs API or
-          logs table.
-        </p>
-      </Section>
+      {data && (
+        <Section title="Recent Activity">
+          <p className="flex items-center gap-2 text-sm text-slate-500">
+            <Info size={16} />
+            Activity logs are not available yet: the backend has no logs API or
+            logs table.
+          </p>
+        </Section>
+      )}
     </div>
   );
 }
