@@ -13,19 +13,30 @@ import {
   updateCategorySchema,
 } from "../schemas/categorySchema.js";
 import validate from "../middlewares/validate.js";
-import authorize from "../middlewares/authorize.js";
+import authorizeSection from "../middlewares/authorizeSection.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
 
-router.get("/", verifyToken, authorize("admin"), getAllCategories);
-router.get("/:name", verifyToken, authorize("admin"), searchCategoriesByName);
+// Staff need to read categories to manage services and policies.
+router.get(
+  "/",
+  verifyToken,
+  authorizeSection("categories", "services", "policies"),
+  getAllCategories,
+);
+router.get(
+  "/:name",
+  verifyToken,
+  authorizeSection("categories", "services", "policies"),
+  searchCategoriesByName,
+);
 
 router.post(
   "/",
   validate(createCategorySchema),
   verifyToken,
-  authorize("admin"),
+  authorizeSection("categories"),
   createCategory,
 );
 
@@ -33,7 +44,7 @@ router.patch(
   "/:id",
   validate(updateCategorySchema),
   verifyToken,
-  authorize("admin"),
+  authorizeSection("categories"),
   updateCategory,
 );
 
@@ -41,10 +52,15 @@ router.patch(
   "/:id/default",
   validate(setDefaultCategorySchema),
   verifyToken,
-  authorize("admin"),
+  authorizeSection("categories"),
   setDefaultCategory,
 );
 
-router.delete("/:id", verifyToken, authorize("admin"), deleteCategory);
+router.delete(
+  "/:id",
+  verifyToken,
+  authorizeSection("categories"),
+  deleteCategory,
+);
 
 export default router;

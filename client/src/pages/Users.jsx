@@ -7,16 +7,38 @@ import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { useAuth } from "../hooks/useAuth";
 import { getUsers, updateUser } from "../services/userService";
+import { getServiceImageUrl } from "../services/serviceService";
 
 const fullName = (user) => `${user.first_name} ${user.last_name}`.trim();
 
+const SECTION_LABELS = [
+  { key: "can_access_services", label: "Services" },
+  { key: "can_access_policies", label: "Policies" },
+  { key: "can_access_categories", label: "Categories" },
+];
+
 function UserAvatar({ user }) {
+  const [failedImage, setFailedImage] = useState("");
+  const image = user.profile_image
+    ? getServiceImageUrl(user.profile_image)
+    : "";
+  const dimmed = user.is_active ? "" : "opacity-50";
+
+  if (image && image !== failedImage) {
+    return (
+      <img
+        src={image}
+        alt=""
+        onError={() => setFailedImage(image)}
+        className={`h-9 w-9 shrink-0 rounded-full object-cover ${dimmed}`}
+      />
+    );
+  }
+
   return (
     <span
       aria-hidden="true"
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white ${
-        user.is_active ? "" : "opacity-50"
-      }`}
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white ${dimmed}`}
     >
       {(user.first_name || user.username).charAt(0).toUpperCase()}
     </span>
@@ -38,17 +60,31 @@ function UserRole({ user }) {
 }
 
 function UserPermissions({ user }) {
-  return user.role === "admin" ? (
-    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-      ALL ACCESS
-    </span>
-  ) : (
-    <span
-      className="text-slate-400"
-      {...tooltip("No per-user permissions are configured")}
-    >
-      —
-    </span>
+  if (user.role === "admin") {
+    return (
+      <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+        ALL ACCESS
+      </span>
+    );
+  }
+
+  const granted = SECTION_LABELS.filter(({ key }) => user[key] === true);
+
+  if (granted.length === 0) {
+    return <span className="text-xs text-slate-400">No access</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {granted.map(({ key, label }) => (
+        <span
+          key={key}
+          className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+        >
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }
 

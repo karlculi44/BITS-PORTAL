@@ -1,11 +1,30 @@
 import pool from "../config/db.js";
 
+// Admins always have full access, regardless of the stored permission values.
+const permissionColumns = `
+      (role = 'admin' OR can_access_services) AS can_access_services,
+      (role = 'admin' OR can_access_policies) AS can_access_policies,
+      (role = 'admin' OR can_access_categories) AS can_access_categories`;
+
+const userColumns = `
+      id,
+      first_name,
+      last_name,
+      username,
+      role,
+      is_active,
+      profile_image,${permissionColumns}`;
+
 export const insertUser = async ({
   firstName,
   lastName,
   username,
   passwordHash,
   role,
+  profileImage = null,
+  canAccessServices = false,
+  canAccessPolicies = false,
+  canAccessCategories = false,
 }) => {
   const result = await pool.query(
     `INSERT INTO users (
@@ -13,18 +32,26 @@ export const insertUser = async ({
       last_name,
       username,
       password_hash,
-      role
-    )
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING
-      id,
-      first_name,
-      last_name,
-      username,
       role,
-      is_active,
+      profile_image,
+      can_access_services,
+      can_access_policies,
+      can_access_categories
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING${userColumns},
       created_at`,
-    [firstName, lastName, username, passwordHash, role],
+    [
+      firstName,
+      lastName,
+      username,
+      passwordHash,
+      role,
+      profileImage,
+      canAccessServices,
+      canAccessPolicies,
+      canAccessCategories,
+    ],
   );
 
   return result.rows[0];
@@ -32,13 +59,7 @@ export const insertUser = async ({
 
 export const getUserByUsername = async (username) => {
   const result = await pool.query(
-    `SELECT
-      id,
-      first_name,
-      last_name,
-      username,
-      role,
-      is_active,
+    `SELECT${userColumns},
       created_at
     FROM users
     WHERE username = $1`,
@@ -50,13 +71,7 @@ export const getUserByUsername = async (username) => {
 
 export const getUserById = async (id) => {
   const result = await pool.query(
-    `SELECT
-      id,
-      first_name,
-      last_name,
-      username,
-      role,
-      is_active,
+    `SELECT${userColumns},
       created_at
     FROM users
     WHERE id = $1`,
@@ -68,13 +83,7 @@ export const getUserById = async (id) => {
 
 export const getAllUsers = async () => {
   const result = await pool.query(
-    `SELECT
-      id,
-      first_name,
-      last_name,
-      username,
-      role,
-      is_active,
+    `SELECT${userColumns},
       created_at,
       updated_at
     FROM users
@@ -88,13 +97,7 @@ export const deleteUser = async (userId) => {
   const result = await pool.query(
     `DELETE FROM users
     WHERE id = $1
-    RETURNING
-      id,
-      first_name,
-      last_name,
-      username,
-      role,
-      is_active,
+    RETURNING${userColumns},
       created_at,
       updated_at`,
     [userId],
@@ -111,38 +114,32 @@ export const updateUser = async ({
   passwordHash,
   role,
   isActive,
+  profileImage,
+  canAccessServices,
+  canAccessPolicies,
+  canAccessCategories,
 }) => {
   const updates = [];
   const values = [];
 
-  if (firstName !== undefined) {
-    values.push(firstName);
-    updates.push(`first_name = $${values.length}`);
-  }
+  const columns = {
+    first_name: firstName,
+    last_name: lastName,
+    username,
+    password_hash: passwordHash,
+    role,
+    is_active: isActive,
+    profile_image: profileImage,
+    can_access_services: canAccessServices,
+    can_access_policies: canAccessPolicies,
+    can_access_categories: canAccessCategories,
+  };
 
-  if (lastName !== undefined) {
-    values.push(lastName);
-    updates.push(`last_name = $${values.length}`);
-  }
-
-  if (username !== undefined) {
-    values.push(username);
-    updates.push(`username = $${values.length}`);
-  }
-
-  if (passwordHash !== undefined) {
-    values.push(passwordHash);
-    updates.push(`password_hash = $${values.length}`);
-  }
-
-  if (role !== undefined) {
-    values.push(role);
-    updates.push(`role = $${values.length}`);
-  }
-
-  if (isActive !== undefined) {
-    values.push(isActive);
-    updates.push(`is_active = $${values.length}`);
+  for (const [column, value] of Object.entries(columns)) {
+    if (value !== undefined) {
+      values.push(value);
+      updates.push(`${column} = $${values.length}`);
+    }
   }
 
   values.push(userId);
@@ -152,13 +149,7 @@ export const updateUser = async ({
     SET ${updates.join(", ")},
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $${values.length}
-    RETURNING
-      id,
-      first_name,
-      last_name,
-      username,
-      role,
-      is_active,
+    RETURNING${userColumns},
       created_at,
       updated_at`,
     values,
@@ -169,14 +160,8 @@ export const updateUser = async ({
 
 export const getUserForLogin = async (username) => {
   const result = await pool.query(
-    `SELECT
-      id,
-      first_name,
-      last_name,
-      username,
+    `SELECT${userColumns},
       password_hash,
-      role,
-      is_active,
       created_at
     FROM users
     WHERE username = $1`,

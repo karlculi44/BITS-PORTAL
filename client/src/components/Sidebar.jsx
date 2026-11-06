@@ -2,10 +2,10 @@ import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { LogOut } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { navItems } from "./navItems";
+import { canViewNavItem, navItems } from "./navItems";
 
 function Sidebar({ open, onClose }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -29,23 +29,25 @@ function Sidebar({ open, onClose }) {
       >
         <div className="px-6 py-5 text-xl font-bold text-blue-700">BITS Portal</div>
         <nav className="flex-1 space-y-1 px-3">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+          {navItems
+            .filter((item) => canViewNavItem(user, item))
+            .map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                    isActive
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`
+                }
+              >
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
         </nav>
         <div className="border-t border-slate-200 p-3">
           <button

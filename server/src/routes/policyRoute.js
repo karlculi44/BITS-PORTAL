@@ -10,7 +10,7 @@ import {
   updatePolicySchema,
 } from "../schemas/policySchema.js";
 import validate from "../middlewares/validate.js";
-import authorize from "../middlewares/authorize.js";
+import authorizeSection from "../middlewares/authorizeSection.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
@@ -21,7 +21,7 @@ router.post(
   "/",
   validate(createPolicySchema),
   verifyToken,
-  authorize("admin"),
+  authorizeSection("policies"),
   createPolicyController,
 );
 
@@ -29,10 +29,15 @@ router.patch(
   "/:id",
   validate(updatePolicySchema),
   verifyToken,
-  authorize("admin"),
+  authorizeSection("policies"),
   updatePolicyController,
 );
 
-router.delete("/:id", verifyToken, authorize("admin"), deletePolicyController);
+router.delete(
+  "/:id",
+  verifyToken,
+  authorizeSection("policies"),
+  deletePolicyController,
+);
 
 export default router;

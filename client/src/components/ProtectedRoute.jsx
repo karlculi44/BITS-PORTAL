@@ -2,8 +2,9 @@ import { useContext } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../context/authContextValue";
 import PageSkeleton from "./ui/PageSkeleton";
+import { hasSectionAccess } from "./navItems";
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children, allowedRoles, section }) => {
   const { user, loading } = useContext(AuthContext);
   if (loading) {
     return (
@@ -22,6 +23,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  if (section && !hasSectionAccess(user, section)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

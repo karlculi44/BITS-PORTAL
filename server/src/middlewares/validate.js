@@ -7,7 +7,9 @@ const validate = (schema) => {
     if (!result.success) {
       if (req.file?.filename) {
         try {
-          await removeServiceLogo(req.file.filename);
+          await (req.removeUploadedFile ?? removeServiceLogo)(
+            req.file.filename,
+          );
         } catch (error) {
           return next(error);
         }

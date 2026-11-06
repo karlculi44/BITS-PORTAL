@@ -13,7 +13,7 @@ import {
   updateServiceSchema,
 } from "../schemas/officeServiceSchema.js";
 import validate from "../middlewares/validate.js";
-import authorize from "../middlewares/authorize.js";
+import authorizeSection from "../middlewares/authorizeSection.js";
 import verifyToken from "../middlewares/verifyToken.js";
 import serviceLogoUpload from "../middlewares/serviceLogoUpload.js";
 import validateServiceId from "../middlewares/validateServiceId.js";
@@ -44,7 +44,7 @@ router.get("/search/:term", searchServicesController);
 router.post(
   "/",
   verifyToken,
-  authorize("admin"),
+  authorizeSection("services"),
   serviceLogoUpload,
   normalizeMultipartNumbers,
   validate(createServiceSchema),
@@ -54,7 +54,7 @@ router.post(
 router.patch(
   "/:id",
   verifyToken,
-  authorize("admin"),
+  authorizeSection("services"),
   validateServiceId,
   serviceLogoUpload,
   normalizeMultipartNumbers,
@@ -65,7 +65,7 @@ router.patch(
 router.patch(
   "/:id/default",
   verifyToken,
-  authorize("admin"),
+  authorizeSection("services"),
   validateServiceId,
   setDefaultServiceController,
 );
@@ -73,7 +73,7 @@ router.patch(
 router.delete(
   "/:id",
   verifyToken,
-  authorize("admin"),
+  authorizeSection("services"),
   validateServiceId,
   deleteServiceController,
 );

@@ -29,9 +29,30 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/policies" element={<Placeholder name="Policies" />} />
-            <Route path="/categories" element={<Categories />} />
+            <Route
+              path="/services"
+              element={
+                <ProtectedRoute section="services">
+                  <Services />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/policies"
+              element={
+                <ProtectedRoute section="policies">
+                  <Placeholder name="Policies" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <ProtectedRoute section="categories">
+                  <Categories />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/users"
               element={

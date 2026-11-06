@@ -3,6 +3,7 @@ import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
 import ServiceModal from "../components/ServiceModal";
 import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
+import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
 import { getServices } from "../services/dashboardService";
 import SearchFilter from "../components/SearchFilter";
@@ -93,7 +94,7 @@ function ServiceActions({ service, isAdmin, onEdit }) {
 
 function Services() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = hasSectionAccess(user, "services");
   const [viewMode, setViewMode] = useState("list");
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);

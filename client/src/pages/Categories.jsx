@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import CategoryModal from "../components/CategoryModal";
 import SearchFilter from "../components/SearchFilter";
 import { tooltip } from "../components/tooltip";
+import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
 import {
   deleteCategory,
@@ -20,7 +21,7 @@ const TABS = [
 
 function Categories() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = hasSectionAccess(user, "categories");
   const [activeTab, setActiveTab] = useState("service");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);

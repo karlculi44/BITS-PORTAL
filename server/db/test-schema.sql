@@ -8,6 +8,10 @@ CREATE TABLE public.users (
   is_active boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  can_access_services boolean DEFAULT false NOT NULL,
+  can_access_policies boolean DEFAULT false NOT NULL,
+  can_access_categories boolean DEFAULT false NOT NULL,
+  profile_image text,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_role_check
     CHECK (role::text = ANY (ARRAY['admin'::character varying, 'staff'::character varying]::text[])),

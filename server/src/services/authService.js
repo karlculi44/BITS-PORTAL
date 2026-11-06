@@ -5,6 +5,7 @@ import * as authModel from "../models/authModel.js";
 import * as userModel from "../models/userModel.js";
 import AppError from "../utils/AppError.js";
 import { hashToken } from "../utils/hashToken.js";
+import { formatUserAvatar } from "../utils/userAvatar.js";
 
 const createAccessToken = (user) =>
   jwt.sign(
@@ -46,6 +47,10 @@ export const loginUser = async ({ username, password }) => {
     username: user.username,
     role: user.role,
     is_active: user.is_active,
+    profile_image: formatUserAvatar(user).profile_image,
+    can_access_services: user.can_access_services,
+    can_access_policies: user.can_access_policies,
+    can_access_categories: user.can_access_categories,
     created_at: user.created_at,
   };
 
@@ -110,7 +115,7 @@ export const getSessionUser = async (userId) => {
   if (!user || !user.is_active) {
     throw new AppError("Invalid or expired session", 401);
   }
-  return user;
+  return formatUserAvatar(user);
 };
 
 export const logoutUser = async (refreshToken) => {
