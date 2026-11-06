@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   FolderTree,
@@ -9,7 +9,7 @@ import {
   Server,
   Users,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 export const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -22,10 +22,12 @@ export const navItems = [
 
 function Sidebar({ open, onClose }) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/login", { replace: true });
     } catch {
       toast.error("Unable to log out. Please try again.");
     }

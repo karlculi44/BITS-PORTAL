@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { Menu, User } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { navItems } from "./Sidebar";
 
 function Topbar({ onMenuClick }) {

@@ -4,13 +4,11 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
-// eslint-disable-next-line no-unused-vars
-import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <>
         <Toaster position="top-right" />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -20,11 +18,17 @@ function App() {
             <Route path="/users" element={<Placeholder name="Users" />} />
             <Route path="/services" element={<Placeholder name="Services" />} />
             <Route path="/policies" element={<Placeholder name="Policies" />} />
-            <Route path="/categories" element={<Placeholder name="Categories" />} />
-            <Route path="/activity-logs" element={<Placeholder name="Activity Logs" />} />
+            <Route
+              path="/categories"
+              element={<Placeholder name="Categories" />}
+            />
+            <Route
+              path="/activity-logs"
+              element={<Placeholder name="Activity Logs" />}
+            />
           </Route>
         </Routes>
-      </AuthProvider>
+      </>
     </BrowserRouter>
   );
 }

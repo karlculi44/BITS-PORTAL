@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const getErrorMessage = (error) => {
   const data = error.response?.data;

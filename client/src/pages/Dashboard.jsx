@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { FolderTree, Info, ScrollText, Server, UserCheck, Users } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import {
+  FolderTree,
+  Info,
+  ScrollText,
+  Server,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 import StatCard from "../components/StatCard";
 import { getDashboardData } from "../services/dashboardService";
 
@@ -22,9 +29,16 @@ function RecentList({ items, primary, secondary }) {
   return (
     <ul className="divide-y divide-slate-100">
       {items.map((item) => (
-        <li key={item.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-          <span className="truncate font-medium text-slate-700">{primary(item)}</span>
-          <span className="shrink-0 text-xs text-slate-500">{secondary(item)}</span>
+        <li
+          key={item.id}
+          className="flex items-center justify-between gap-3 py-2 text-sm"
+        >
+          <span className="truncate font-medium text-slate-700">
+            {primary(item)}
+          </span>
+          <span className="shrink-0 text-xs text-slate-500">
+            {secondary(item)}
+          </span>
         </li>
       ))}
     </ul>
@@ -44,7 +58,10 @@ function Dashboard() {
         if (active) setData(result);
       })
       .catch((err) => {
-        if (active) setError(err.response?.data?.message || "Unable to load dashboard data.");
+        if (active)
+          setError(
+            err.response?.data?.message || "Unable to load dashboard data.",
+          );
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -55,7 +72,9 @@ function Dashboard() {
   }, []);
 
   const welcome = (
-    <h2 className="text-xl font-semibold text-slate-800">Welcome, {user?.first_name}</h2>
+    <h2 className="text-xl font-semibold text-slate-800">
+      Welcome, {user?.first_name}
+    </h2>
   );
 
   if (loading) {
@@ -70,7 +89,10 @@ function Dashboard() {
     return (
       <div className="space-y-4">
         {welcome}
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
           {error}
         </p>
       </div>
@@ -83,7 +105,11 @@ function Dashboard() {
     { label: "Active Users", value: stats.active_users, icon: UserCheck },
     { label: "Total Services", value: stats.total_services, icon: Server },
     { label: "Total Policies", value: stats.total_policies, icon: ScrollText },
-    { label: "Total Categories", value: stats.total_categories, icon: FolderTree },
+    {
+      label: "Total Categories",
+      value: stats.total_categories,
+      icon: FolderTree,
+    },
   ];
 
   return (
@@ -115,7 +141,8 @@ function Dashboard() {
       <Section title="Recent Activity">
         <p className="flex items-center gap-2 text-sm text-slate-500">
           <Info size={16} />
-          Activity logs are not available yet: the backend has no logs API or logs table.
+          Activity logs are not available yet: the backend has no logs API or
+          logs table.
         </p>
       </Section>
     </div>
