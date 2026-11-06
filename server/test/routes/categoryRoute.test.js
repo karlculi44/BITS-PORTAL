@@ -13,6 +13,15 @@ import pool from "../../src/config/db.js";
 
 const accessSecret = "test-access-secret";
 
+const staffWithoutAccess = {
+  id: 1,
+  role: "staff",
+  is_active: true,
+  can_access_services: false,
+  can_access_policies: false,
+  can_access_categories: false,
+};
+
 const accessCookie = (role) => {
   const token = jwt.sign({ role }, accessSecret, { subject: "1" });
   return `accessToken=${token}`;
@@ -78,13 +87,14 @@ describe("GET /api/categories/:name", () => {
 
     it("requires authentication and admin access", async () => {
       const unauthenticated = await request(app).delete("/api/categories/1");
+      pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
       const staff = await request(app)
         .delete("/api/categories/1")
         .set("Cookie", accessCookie("staff"));
 
       expect(unauthenticated.status).toBe(401);
       expect(staff.status).toBe(403);
-      expect(pool.query).not.toHaveBeenCalled();
+      expect(pool.query).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -179,6 +189,7 @@ describe("GET /api/categories/:name", () => {
       const unauthenticated = await request(app)
         .patch("/api/categories/1")
         .send({ name: "Books" });
+      pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
       const staff = await request(app)
         .patch("/api/categories/1")
         .set("Cookie", accessCookie("staff"))
@@ -186,7 +197,7 @@ describe("GET /api/categories/:name", () => {
 
       expect(unauthenticated.status).toBe(401);
       expect(staff.status).toBe(403);
-      expect(pool.query).not.toHaveBeenCalled();
+      expect(pool.query).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -228,13 +239,14 @@ describe("GET /api/categories/:name", () => {
     expect(response.body).toEqual([]);
   });
 
-  it("does not allow staff to retrieve a category", async () => {
+  it("does not allow staff without category access to retrieve a category", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
     const response = await request(app)
       .get("/api/categories/Books")
       .set("Cookie", accessCookie("staff"));
 
     expect(response.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -280,6 +292,7 @@ describe("POST /api/categories", () => {
     const unauthenticated = await request(app)
       .post("/api/categories")
       .send({ name: "Student Services", type: "service" });
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
     const staff = await request(app)
       .post("/api/categories")
       .set("Cookie", accessCookie("staff"))
@@ -289,6 +302,6 @@ describe("POST /api/categories", () => {
     expect(invalid.body.errors).toBeDefined();
     expect(unauthenticated.status).toBe(401);
     expect(staff.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 });

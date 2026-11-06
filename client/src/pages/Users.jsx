@@ -3,11 +3,91 @@ import { Pencil, Plus, UserCheck, UserX } from "lucide-react";
 import toast from "react-hot-toast";
 import SearchFilter from "../components/SearchFilter";
 import UserModal from "../components/UserModal";
+import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { useAuth } from "../hooks/useAuth";
 import { getUsers, updateUser } from "../services/userService";
 
 const fullName = (user) => `${user.first_name} ${user.last_name}`.trim();
+
+function UserAvatar({ user }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white ${
+        user.is_active ? "" : "opacity-50"
+      }`}
+    >
+      {(user.first_name || user.username).charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function UserRole({ user }) {
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${
+        user.role === "admin"
+          ? "bg-purple-100 text-purple-700"
+          : "bg-blue-100 text-blue-700"
+      }`}
+    >
+      {user.role}
+    </span>
+  );
+}
+
+function UserPermissions({ user }) {
+  return user.role === "admin" ? (
+    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+      ALL ACCESS
+    </span>
+  ) : (
+    <span
+      className="text-slate-400"
+      {...tooltip("No per-user permissions are configured")}
+    >
+      —
+    </span>
+  );
+}
+
+function UserActions({ user, isSelf, statusUpdatingId, onEdit, onStatusChange }) {
+  return (
+    <div className="flex shrink-0 gap-1">
+      <button
+        type="button"
+        onClick={() => onEdit(user)}
+        aria-label={`Edit ${user.username}`}
+        {...tooltip("Edit User")}
+        className="rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-700"
+      >
+        <Pencil size={18} aria-hidden="true" />
+      </button>
+      <span {...(isSelf && tooltip("You cannot deactivate your own account"))}>
+        <button
+          type="button"
+          onClick={() => onStatusChange(user)}
+          disabled={isSelf || statusUpdatingId !== null}
+          aria-label={`${user.is_active ? "Deactivate" : "Activate"} ${user.username}`}
+          {...(!isSelf &&
+            tooltip(user.is_active ? "Deactivate User" : "Activate User"))}
+          className={`rounded-md p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            user.is_active
+              ? "text-red-600 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700"
+              : "text-emerald-600 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
+          }`}
+        >
+          {user.is_active ? (
+            <UserX size={18} aria-hidden="true" />
+          ) : (
+            <UserCheck size={18} aria-hidden="true" />
+          )}
+        </button>
+      </span>
+    </div>
+  );
+}
 
 function Users() {
   const { user: currentUser } = useAuth();
@@ -15,6 +95,7 @@ function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("list");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [refresh, setRefresh] = useState(0);
@@ -81,6 +162,10 @@ function Users() {
         (value) => value?.toLowerCase().includes(normalizedSearch),
       ),
   );
+  const openEditModal = (user) => {
+    setSelectedUser(user);
+    setModalOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -101,6 +186,7 @@ function Users() {
             searchLabel="Search users"
             searchTooltip="Search by username or name"
           />
+          <ViewToggle label="Users view" viewMode={viewMode} onChange={setViewMode} />
           <button
             type="button"
             onClick={() => {
@@ -131,7 +217,7 @@ function Users() {
           <p className="p-5 text-sm text-slate-500">
             No users match your search.
           </p>
-        ) : (
+        ) : viewMode === "list" ? (
           <table className="w-full min-w-175 text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
               <tr>
@@ -158,23 +244,13 @@ function Users() {
             <tbody className="divide-y divide-slate-100">
               {filteredUsers.map((user) => {
                 const isSelf = String(user.id) === String(currentUser?.id);
-                const isAdminUser = user.role === "admin";
                 return (
                   <tr
                     key={user.id}
                     className={user.is_active ? "" : "bg-slate-50/60"}
                   >
                     <td className="px-5 py-3">
-                      <span
-                        aria-hidden="true"
-                        className={`flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white ${
-                          user.is_active ? "" : "opacity-50"
-                        }`}
-                      >
-                        {(user.first_name || user.username)
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
+                      <UserAvatar user={user} />
                     </td>
                     <td className="px-5 py-3 font-semibold text-slate-800">
                       {user.username}
@@ -188,79 +264,64 @@ function Users() {
                       {fullName(user)}
                     </td>
                     <td className="px-5 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${
-                          isAdminUser
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {user.role}
-                      </span>
+                      <UserRole user={user} />
                     </td>
                     <td className="px-5 py-3">
-                      {isAdminUser ? (
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                          ALL ACCESS
-                        </span>
-                      ) : (
-                        <span
-                          className="text-slate-400"
-                          {...tooltip("No per-user permissions are configured")}
-                        >
-                          —
-                        </span>
-                      )}
+                      <UserPermissions user={user} />
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setModalOpen(true);
-                          }}
-                          aria-label={`Edit ${user.username}`}
-                          {...tooltip("Edit User")}
-                          className="rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-700"
-                        >
-                          <Pencil size={18} aria-hidden="true" />
-                        </button>
-                        <span
-                          {...(isSelf &&
-                            tooltip("You cannot deactivate your own account"))}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(user)}
-                            disabled={isSelf || statusUpdatingId !== null}
-                            aria-label={`${user.is_active ? "Deactivate" : "Activate"} ${user.username}`}
-                            {...(!isSelf &&
-                              tooltip(
-                                user.is_active
-                                  ? "Deactivate User"
-                                  : "Activate User",
-                              ))}
-                            className={`rounded-md p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                              user.is_active
-                                ? "text-red-600 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700"
-                                : "text-emerald-600 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
-                            }`}
-                          >
-                            {user.is_active ? (
-                              <UserX size={18} aria-hidden="true" />
-                            ) : (
-                              <UserCheck size={18} aria-hidden="true" />
-                            )}
-                          </button>
-                        </span>
-                      </div>
+                      <UserActions
+                        user={user}
+                        isSelf={isSelf}
+                        statusUpdatingId={statusUpdatingId}
+                        onEdit={openEditModal}
+                        onStatusChange={handleStatusChange}
+                      />
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        ) : (
+          <ul className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3">
+            {filteredUsers.map((user) => (
+              <li
+                key={user.id}
+                className={`flex flex-col rounded-lg border border-slate-200 p-4 shadow-sm transition-shadow hover:shadow-md ${
+                  user.is_active ? "bg-white" : "bg-slate-50/60"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <UserAvatar user={user} />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="wrap-break-word font-semibold text-slate-800">
+                      {user.username}
+                    </h3>
+                    <p className="wrap-break-word text-sm text-slate-600">
+                      {fullName(user)}
+                    </p>
+                    {!user.is_active && (
+                      <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                  <UserActions
+                    user={user}
+                    isSelf={String(user.id) === String(currentUser?.id)}
+                    statusUpdatingId={statusUpdatingId}
+                    onEdit={openEditModal}
+                    onStatusChange={handleStatusChange}
+                  />
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                  <UserRole user={user} />
+                  <UserPermissions user={user} />
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       {modalOpen && (

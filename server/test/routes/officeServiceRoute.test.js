@@ -12,6 +12,15 @@ import app from "../../src/app.js";
 import pool from "../../src/config/db.js";
 
 const accessSecret = "test-access-secret";
+
+const staffWithoutAccess = {
+  id: 1,
+  role: "staff",
+  is_active: true,
+  can_access_services: false,
+  can_access_policies: false,
+  can_access_categories: false,
+};
 const validInput = {
   title: "Transcript Request",
   url: "https://example.com/transcript",
@@ -254,6 +263,7 @@ describe("POST /api/services", () => {
     const unauthenticated = await request(app)
       .post("/api/services")
       .send(validInput);
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
     const staff = await request(app)
       .post("/api/services")
       .set("Cookie", accessCookie("staff"))
@@ -261,7 +271,7 @@ describe("POST /api/services", () => {
 
     expect(unauthenticated.status).toBe(401);
     expect(staff.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -415,6 +425,7 @@ describe("PATCH /api/services/:id", () => {
     const unauthenticated = await request(app)
       .patch("/api/services/9")
       .send({ title: "Updated" });
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
     const staff = await request(app)
       .patch("/api/services/9")
       .set("Cookie", accessCookie("staff"))
@@ -422,7 +433,7 @@ describe("PATCH /api/services/:id", () => {
 
     expect(unauthenticated.status).toBe(401);
     expect(staff.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -551,12 +562,13 @@ describe("DELETE /api/services/:id", () => {
 
   it("requires authentication and admin authorization", async () => {
     const unauthenticated = await request(app).delete("/api/services/9");
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
     const staff = await request(app)
       .delete("/api/services/9")
       .set("Cookie", accessCookie("staff"));
 
     expect(unauthenticated.status).toBe(401);
     expect(staff.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 });

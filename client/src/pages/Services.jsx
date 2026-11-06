@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ImageOff, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
+import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
 import ServiceModal from "../components/ServiceModal";
+import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { useAuth } from "../hooks/useAuth";
 import { getServices } from "../services/dashboardService";
@@ -89,11 +90,6 @@ function ServiceActions({ service, isAdmin, onEdit }) {
     </div>
   );
 }
-
-const VIEW_OPTIONS = [
-  { value: "list", label: "List View", icon: List },
-  { value: "grid", label: "Grid View", icon: LayoutGrid },
-];
 
 function Services() {
   const { user } = useAuth();
@@ -190,29 +186,7 @@ function Services() {
             filterTooltip="Filter services by category"
             filterPlaceholder="All Categories"
           />
-          <div
-            role="group"
-            aria-label="Services view"
-            className="inline-flex self-start rounded-md border border-slate-300 bg-white p-0.5"
-          >
-            {VIEW_OPTIONS.map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setViewMode(value)}
-                aria-label={label}
-                aria-pressed={viewMode === value}
-                {...tooltip(label)}
-                className={`rounded p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-blue-700 ${
-                  viewMode === value
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-500 hover:bg-slate-100"
-                }`}
-              >
-                <Icon size={18} aria-hidden="true" />
-              </button>
-            ))}
-          </div>
+          <ViewToggle label="Services view" viewMode={viewMode} onChange={setViewMode} />
           <span
             className="self-start"
             {...(!isAdmin && tooltip(ADMIN_ONLY_MESSAGE))}

@@ -202,6 +202,16 @@ describe("service logo uploads", () => {
   });
 
   it("does not store uploads for unauthorized users", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          role: "staff",
+          is_active: true,
+          can_access_services: false,
+        },
+      ],
+    });
     const response = await request(app)
       .post("/api/services")
       .set("Cookie", accessCookie("staff"))
@@ -211,7 +221,7 @@ describe("service logo uploads", () => {
       });
 
     expect(response.status).toBe(403);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(1);
     expect(await listLogos()).toEqual([...existingLogos]);
   });
 
