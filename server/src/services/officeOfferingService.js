@@ -94,6 +94,16 @@ export const updateService = async (serviceId, service) => {
   }
 };
 
+export const setDefaultService = async (serviceId) => {
+  const service = await officeServiceModel.setDefaultService(serviceId);
+
+  if (!service) {
+    throw new AppError("Service not found", 404);
+  }
+
+  return service;
+};
+
 export const deleteService = async (serviceId) => {
   const service = await officeServiceModel.deleteService(serviceId);
 

@@ -42,6 +42,21 @@ export const updateServiceController = asyncHandler(async (req, res) => {
   });
 });
 
+export const setDefaultServiceController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid service ID", 400);
+  }
+
+  const service = await officeOfferingService.setDefaultService(id);
+
+  res.status(200).json({
+    message: "Service set as default successfully",
+    data: service,
+  });
+});
+
 export const deleteServiceController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 

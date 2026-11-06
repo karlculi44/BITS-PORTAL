@@ -33,6 +33,7 @@ describe("officeServiceModel integration", () => {
         description text NOT NULL,
         sort_order integer NOT NULL DEFAULT 0,
         category_id integer NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+        is_default boolean NOT NULL DEFAULT false,
         created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`,

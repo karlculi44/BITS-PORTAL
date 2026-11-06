@@ -4,6 +4,7 @@ import {
   deleteServiceController,
   getAllServicesController,
   searchServicesController,
+  setDefaultServiceController,
   updateServiceController,
 } from "../controllers/serviceController.js";
 import {
@@ -34,6 +35,13 @@ router.patch(
   verifyToken,
   authorize("admin"),
   updateServiceController,
+);
+
+router.patch(
+  "/:id/default",
+  verifyToken,
+  authorize("admin"),
+  setDefaultServiceController,
 );
 
 router.delete("/:id", verifyToken, authorize("admin"), deleteServiceController);

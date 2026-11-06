@@ -13,7 +13,7 @@ export const getCategoryById = async (categoryId) => {
 
 export const getAllServices = async () => {
   const result = await pool.query(
-    `SELECT id, title, url, image, description, sort_order, category_id, created_at, updated_at
+    `SELECT id, title, url, image, description, sort_order, category_id, is_default, created_at, updated_at
     FROM services
     ORDER BY sort_order ASC, id ASC`,
   );
@@ -49,7 +49,7 @@ export const insertService = async ({
     WHERE category.id = $${values.length}
       AND category.type = 'service'
     FOR SHARE
-    RETURNING id, title, url, image, description, sort_order, category_id, created_at, updated_at`,
+    RETURNING id, title, url, image, description, sort_order, category_id, is_default, created_at, updated_at`,
     values,
   );
 
@@ -58,7 +58,7 @@ export const insertService = async ({
 
 export const searchServices = async (term) => {
   const result = await pool.query(
-    `SELECT id, title, url, image, description, sort_order, category_id, created_at, updated_at
+    `SELECT id, title, url, image, description, sort_order, category_id, is_default, created_at, updated_at
     FROM services
     WHERE POSITION($1 IN title) > 0
       OR POSITION($1 IN description) > 0`,
@@ -107,8 +107,9 @@ export const updateService = async (serviceId, service) => {
   updates.push("updated_at = CURRENT_TIMESTAMP");
   values.push(serviceId);
 
-  const query = categoryIdIndex === undefined
-    ? `UPDATE services
+  const query =
+    categoryIdIndex === undefined
+      ? `UPDATE services
       SET ${updates.join(", ")}
       WHERE id = $${values.length}
       RETURNING
@@ -119,9 +120,10 @@ export const updateService = async (serviceId, service) => {
         services.description,
         services.sort_order,
         services.category_id,
+        services.is_default,
         services.created_at,
         services.updated_at`
-    : `WITH service_category AS MATERIALIZED (
+      : `WITH service_category AS MATERIALIZED (
         SELECT id
         FROM categories
         WHERE id = $${categoryIdIndex}
@@ -140,6 +142,7 @@ export const updateService = async (serviceId, service) => {
         services.description,
         services.sort_order,
         services.category_id,
+        services.is_default,
         services.created_at,
         services.updated_at`;
 
@@ -148,11 +151,37 @@ export const updateService = async (serviceId, service) => {
   return result.rows[0];
 };
 
+export const setDefaultService = async (serviceId) => {
+  const result = await pool.query(
+    `WITH target AS MATERIALIZED (
+      SELECT id
+      FROM services
+      WHERE id = $1
+      FOR UPDATE
+    ),
+    cleared AS (
+      UPDATE services
+      SET is_default = false, updated_at = CURRENT_TIMESTAMP
+      WHERE is_default = true
+        AND id <> $1
+        AND EXISTS (SELECT 1 FROM target)
+    )
+    UPDATE services
+    SET is_default = true, updated_at = CURRENT_TIMESTAMP
+    FROM target
+    WHERE services.id = target.id
+    RETURNING services.id, services.title, services.url, services.image, services.description, services.sort_order, services.category_id, services.is_default, services.created_at, services.updated_at`,
+    [serviceId],
+  );
+
+  return result.rows[0];
+};
+
 export const deleteService = async (serviceId) => {
   const result = await pool.query(
     `DELETE FROM services
     WHERE id = $1
-    RETURNING id, title, url, image, description, sort_order, category_id, created_at, updated_at`,
+    RETURNING id, title, url, image, description, sort_order, category_id, is_default, created_at, updated_at`,
     [serviceId],
   );
 
