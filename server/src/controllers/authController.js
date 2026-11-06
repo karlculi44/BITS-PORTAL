@@ -38,12 +38,33 @@ export const loginUserController = asyncHandler(async (req, res) => {
   res.json({
     message: "Login successful",
     data: user,
+    accessToken,
   });
 });
 
 export const getSessionController = asyncHandler(async (req, res) => {
   const user = await authService.getSessionUser(req.user.sub);
   res.json({ message: "Session retrieved successfully", data: user });
+});
+
+export const refreshUserController = asyncHandler(async (req, res) => {
+  const { user, accessToken, refreshToken } = await authService.refreshUser(
+    req.cookies?.refreshToken,
+  );
+
+  res.cookie("accessToken", accessToken, {
+    ...cookieOptions(),
+    maxAge: 15 * 60 * 1000,
+  });
+  res.cookie("refreshToken", refreshToken, {
+    ...cookieOptions(),
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.json({
+    message: "Session refreshed successfully",
+    data: user,
+    accessToken,
+  });
 });
 
 export const logoutUserController = asyncHandler(async (req, res) => {

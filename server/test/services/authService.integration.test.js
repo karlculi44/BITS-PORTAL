@@ -98,4 +98,50 @@ describe("authService integration", () => {
     });
     expect(storedToken.rows[0].token_hash).not.toBe(result.refreshToken);
   });
+
+  it("rotates the refresh token and issues a new authenticated session", async () => {
+    const user = await createUser();
+    const initialSession = await authService.loginUser({
+      username: user.username,
+      password: "valid-password",
+    });
+
+    const nextSession = await authService.refreshUser(initialSession.refreshToken);
+
+    expect(nextSession.user).toMatchObject({
+      id: user.id,
+      username: user.username,
+      role: "staff",
+    });
+    expect(
+      jwt.verify(nextSession.accessToken, accessSecret, {
+        subject: String(user.id),
+      }),
+    ).toMatchObject({ role: "staff" });
+    expect(nextSession.refreshToken).not.toBe(initialSession.refreshToken);
+
+    const storedTokens = await testPool.query(
+      `SELECT token_hash, revoked_at
+       FROM refresh_tokens
+       WHERE user_id = $1 AND token_hash = ANY($2)`,
+      [
+        user.id,
+        [
+          hashToken(initialSession.refreshToken),
+          hashToken(nextSession.refreshToken),
+        ],
+      ],
+    );
+    expect(storedTokens.rows).toHaveLength(2);
+    expect(
+      storedTokens.rows.find(
+        ({ token_hash }) => token_hash === hashToken(initialSession.refreshToken),
+      ).revoked_at,
+    ).toBeTruthy();
+    expect(
+      storedTokens.rows.find(
+        ({ token_hash }) => token_hash === hashToken(nextSession.refreshToken),
+      ).revoked_at,
+    ).toBeNull();
+  });
 });

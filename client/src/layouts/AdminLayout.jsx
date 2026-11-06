@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import AppTooltip from "../components/AppTooltip";
 
 function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,6 +16,7 @@ function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <AppTooltip />
     </div>
   );
 }

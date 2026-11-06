@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { Menu, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { navItems } from "./navItems";
+import { tooltip } from "./tooltip";
 
 function Topbar({ onMenuClick }) {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ function Topbar({ onMenuClick }) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open navigation"
+          {...tooltip("Open navigation", "bottom")}
           className="rounded-md p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
         >
           <Menu size={20} />

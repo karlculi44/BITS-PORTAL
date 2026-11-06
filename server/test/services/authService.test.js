@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 vi.mock("../../src/models/authModel.js", () => ({
   insertRefreshToken: vi.fn(),
   revokeRefreshToken: vi.fn(),
+  rotateRefreshToken: vi.fn(),
 }));
 
 vi.mock("../../src/models/userModel.js", () => ({
@@ -13,7 +15,12 @@ vi.mock("../../src/models/userModel.js", () => ({
 
 import * as authModel from "../../src/models/authModel.js";
 import * as userModel from "../../src/models/userModel.js";
-import { getSessionUser, loginUser, logoutUser } from "../../src/services/authService.js";
+import {
+  getSessionUser,
+  loginUser,
+  logoutUser,
+  refreshUser,
+} from "../../src/services/authService.js";
 import { hashToken } from "../../src/utils/hashToken.js";
 
 const user = {
@@ -32,7 +39,9 @@ describe("loginUser", () => {
     vi.stubEnv("JWT_ACCESS_SECRET", "test-access-secret");
     vi.stubEnv("JWT_REFRESH_SECRET", "test-refresh-secret");
     userModel.getUserForLogin.mockReset();
+    userModel.getUserById.mockReset();
     authModel.insertRefreshToken.mockReset();
+    authModel.rotateRefreshToken.mockReset();
     user.password_hash = await bcrypt.hash("correct-password", 4);
   });
 
@@ -135,6 +144,59 @@ describe("loginUser", () => {
     expect(authModel.insertRefreshToken.mock.calls[0][0].tokenHash).not.toBe(
       result.refreshToken,
     );
+  });
+
+  it("rotates a valid refresh token and issues a new access token", async () => {
+    userModel.getUserById.mockResolvedValueOnce({
+      id: user.id,
+      role: user.role,
+      is_active: true,
+    });
+    authModel.rotateRefreshToken.mockResolvedValueOnce(true);
+    const refreshToken = jwt.sign(
+      { jti: "old-token" },
+      "test-refresh-secret",
+      { subject: String(user.id), expiresIn: "7d" },
+    );
+
+    const result = await refreshUser(refreshToken);
+
+    expect(result.user.id).toBe(user.id);
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).not.toBe(refreshToken);
+    expect(authModel.rotateRefreshToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenHash: hashToken(refreshToken),
+        userId: user.id,
+        nextTokenHash: hashToken(result.refreshToken),
+        expiresAt: expect.any(Date),
+      }),
+    );
+  });
+
+  it("rejects a reused refresh token without issuing credentials", async () => {
+    userModel.getUserById.mockResolvedValueOnce({
+      id: user.id,
+      role: user.role,
+      is_active: true,
+    });
+    authModel.rotateRefreshToken.mockResolvedValueOnce(false);
+    const refreshToken = jwt.sign(
+      { jti: "reused-token" },
+      "test-refresh-secret",
+      { subject: String(user.id), expiresIn: "7d" },
+    );
+
+    await expect(refreshUser(refreshToken)).rejects.toMatchObject({
+      statusCode: 401,
+    });
+  });
+
+  it("rejects an invalid refresh token", async () => {
+    await expect(refreshUser("invalid-token")).rejects.toMatchObject({
+      statusCode: 401,
+    });
+    expect(userModel.getUserById).not.toHaveBeenCalled();
   });
 
   it("fails when token secrets are not configured", async () => {

@@ -70,6 +70,49 @@ describe("authModel integration", () => {
     });
   });
 
+  it("atomically consumes a refresh token and stores its replacement", async () => {
+    const user = await createUser();
+    const oldTokenHash = randomUUID();
+    const nextTokenHash = randomUUID();
+
+    await authModel.insertRefreshToken({
+      userId: user.id,
+      tokenHash: oldTokenHash,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const rotated = await authModel.rotateRefreshToken({
+      tokenHash: oldTokenHash,
+      userId: user.id,
+      nextTokenHash,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    expect(rotated).toBe(true);
+    const result = await testPool.query(
+      `SELECT token_hash, revoked_at
+       FROM refresh_tokens
+       WHERE user_id = $1 AND token_hash = ANY($2)`,
+      [user.id, [oldTokenHash, nextTokenHash]],
+    );
+    expect(result.rows).toHaveLength(2);
+    expect(
+      result.rows.find((row) => row.token_hash === oldTokenHash).revoked_at,
+    ).toBeTruthy();
+    expect(
+      result.rows.find((row) => row.token_hash === nextTokenHash).revoked_at,
+    ).toBeNull();
+
+    await expect(
+      authModel.rotateRefreshToken({
+        tokenHash: oldTokenHash,
+        userId: user.id,
+        nextTokenHash: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      }),
+    ).resolves.toBe(false);
+  });
+
   it("removes refresh tokens when their user is deleted", async () => {
     const user = await createUser();
     const tokenHash = randomUUID();

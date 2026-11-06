@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ImageOff, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { tooltip } from "./tooltip";
 import {
   createService,
   getServiceImageUrl,
@@ -228,6 +229,7 @@ function ServiceModal({ service, onClose, onSaved }) {
             onClick={onClose}
             disabled={submitting}
             aria-label="Close modal"
+            {...tooltip("Close", "left")}
             className="rounded-md p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
           >
             <X size={20} aria-hidden="true" />
@@ -394,6 +396,7 @@ function ServiceModal({ service, onClose, onSaved }) {
                     setDraggingImage(true);
                   }}
                   onDragLeave={() => setDraggingImage(false)}
+                  {...tooltip("Click or drag and drop an image")}
                   onDrop={(event) => {
                     event.preventDefault();
                     setDraggingImage(false);

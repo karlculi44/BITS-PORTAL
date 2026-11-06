@@ -67,4 +67,22 @@ describe("verifyToken middleware", () => {
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
   });
+
+  it("accepts a bearer access token ahead of the access cookie", async () => {
+    vi.stubEnv("JWT_ACCESS_SECRET", accessSecret);
+    const claims = { role: "staff" };
+    const accessToken = jwt.sign(claims, accessSecret, { subject: "7" });
+    const req = {
+      cookies: { accessToken: "stale-cookie-token" },
+      get: () => `Bearer ${accessToken}`,
+    };
+    const res = createResponse();
+    const next = vi.fn();
+
+    await verifyToken(req, res, next);
+
+    expect(req.user).toMatchObject({ ...claims, sub: "7" });
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
 });

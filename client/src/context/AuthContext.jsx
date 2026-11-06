@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { AuthContext } from "./authContextValue";
 import {
+  registerAuthFailureHandler,
+  setAccessToken,
+} from "../services/api";
+import {
   login as loginUser,
   logout as logoutUser,
   googleLogin as googleLoginUser,
   getMe,
+  refresh as refreshSession,
 } from "../services/authService";
 
 export function AuthProvider({ children }) {
@@ -12,25 +17,38 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const unregisterAuthFailureHandler = registerAuthFailureHandler(() => {
+      setUser(null);
+    });
+
+    const restoreSession = async () => {
       try {
-        const data = await getMe();
-        setUser(data.user);
+        const session = await refreshSession();
+        setAccessToken(session.accessToken);
+        setUser(session.data);
       } catch (error) {
-        console.error("Failed to fetch user:", error);
+        if (error.response?.status !== 401) {
+          console.error("Failed to restore session:", error);
+        }
+        setAccessToken(null);
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchUser();
+
+    restoreSession();
+    return unregisterAuthFailureHandler;
   }, []);
 
   const login = async (data) => {
-    await loginUser(data);
-    const userData = await getMe();
-    setUser(userData.user);
-    return userData.user;
+    const session = await loginUser(data);
+    if (!session.accessToken || !session.data) {
+      throw new Error("Login response did not include a session");
+    }
+    setAccessToken(session.accessToken);
+    setUser(session.data);
+    return session.data;
   };
 
   const googleLogin = async (data) => {
@@ -44,6 +62,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await logoutUser();
+    setAccessToken(null);
     setUser(null);
   };
 

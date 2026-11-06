@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 
 const verifyToken = async (req, res, next) => {
-  const accessToken = req.cookies?.accessToken;
+  const authorization = req.get?.("authorization");
+  const accessToken =
+    authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? req.cookies?.accessToken;
   if (!accessToken) {
     return res
       .status(401)
