@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Categories from "./pages/Categories";
+import Users from "./pages/Users";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -35,7 +36,7 @@ function App() {
               path="/users"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <Placeholder name="Users" />
+                  <Users />
                 </ProtectedRoute>
               }
             />
