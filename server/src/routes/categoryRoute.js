@@ -4,10 +4,12 @@ import {
   deleteCategory,
   getAllCategories,
   searchCategoriesByName,
+  setDefaultCategory,
   updateCategory,
 } from "../controllers/categoryController.js";
 import {
   createCategorySchema,
+  setDefaultCategorySchema,
   updateCategorySchema,
 } from "../schemas/categorySchema.js";
 import validate from "../middlewares/validate.js";
@@ -33,6 +35,14 @@ router.patch(
   verifyToken,
   authorize("admin"),
   updateCategory,
+);
+
+router.patch(
+  "/:id/default",
+  validate(setDefaultCategorySchema),
+  verifyToken,
+  authorize("admin"),
+  setDefaultCategory,
 );
 
 router.delete("/:id", verifyToken, authorize("admin"), deleteCategory);

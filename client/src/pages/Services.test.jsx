@@ -136,6 +136,9 @@ describe("Services page", () => {
       await screen.findByText("Email");
       await waitFor(() => expect(screen.getByRole("option", { name: "Support" })).toBeTruthy());
       expect(screen.queryByRole("option", { name: "Rules" })).toBeNull();
+      const options = screen.getByLabelText("Filter by category").options;
+      expect(options[0].textContent).toBe("All Categories");
+      expect(options[0].value).toBe("");
 
       search("  STUDENT ");
       expect(screen.getByText("Student Portal")).toBeTruthy();

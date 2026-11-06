@@ -18,3 +18,7 @@ export const updateCategorySchema = z
       message: "At least one field must be provided",
     },
   );
+
+export const setDefaultCategorySchema = z.object({
+  isDefault: z.boolean(),
+}).strict();

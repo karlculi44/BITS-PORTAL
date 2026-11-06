@@ -32,9 +32,13 @@ CREATE TABLE public.categories (
   name character varying NOT NULL,
   type character varying NOT NULL,
   is_active boolean DEFAULT true NOT NULL,
+  is_default boolean DEFAULT false NOT NULL,
   CONSTRAINT categories_pkey PRIMARY KEY (id),
   CONSTRAINT categories_name_key UNIQUE (name)
 );
+
+CREATE UNIQUE INDEX idx_categories_one_default_per_type
+  ON public.categories (type) WHERE is_default = true;
 
 CREATE TABLE public.policies (
   id integer GENERATED ALWAYS AS IDENTITY,

@@ -1,8 +1,8 @@
 import * as categoryModel from "../models/categoryModel.js";
 import AppError from "../utils/AppError.js";
 
-export const getAllCategories = async () => {
-  return await categoryModel.getAllCategories();
+export const getAllCategories = async (type) => {
+  return await categoryModel.getAllCategories(type);
 };
 
 export const getCategoryByName = async (name) => {
@@ -37,6 +37,29 @@ export const updateCategory = async (category) => {
   }
 };
 
+export const setDefaultCategory = async (categoryId, isDefault) => {
+  try {
+    return await categoryModel.setDefaultCategory(categoryId, isDefault);
+  } catch (error) {
+    if (error.code === "NOT_SERVICE_CATEGORY") {
+      throw new AppError(error.message, 400);
+    }
+
+    throw error;
+  }
+};
+
 export const deleteCategory = async (categoryId) => {
-  return await categoryModel.deleteCategory(categoryId);
+  try {
+    return await categoryModel.deleteCategory(categoryId);
+  } catch (error) {
+    if (error.code === "23503") {
+      throw new AppError(
+        "Category is assigned to services or policies and cannot be deleted",
+        409,
+      );
+    }
+
+    throw error;
+  }
 };

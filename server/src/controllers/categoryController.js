@@ -24,7 +24,13 @@ export const createCategory = asyncHandler(async (req, res) => {
 });
 
 export const getAllCategories = asyncHandler(async (req, res) => {
-  const categories = await categoryService.getAllCategories();
+  const { type } = req.query;
+
+  if (type !== undefined && !["service", "policy"].includes(type)) {
+    throw new AppError("Invalid category type", 400);
+  }
+
+  const categories = await categoryService.getAllCategories(type);
   res.status(200).json(categories);
 });
 
@@ -46,6 +52,25 @@ export const updateCategory = asyncHandler(async (req, res) => {
     categoryId: id,
     ...req.body,
   });
+
+  if (!category) {
+    throw new AppError("Category not found", 404);
+  }
+
+  res.status(200).json(category);
+});
+
+export const setDefaultCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!/^[1-9]\d*$/.test(id) || Number(id) > 2147483647) {
+    throw new AppError("Invalid category ID", 400);
+  }
+
+  const category = await categoryService.setDefaultCategory(
+    Number(id),
+    req.body.isDefault,
+  );
 
   if (!category) {
     throw new AppError("Category not found", 404);

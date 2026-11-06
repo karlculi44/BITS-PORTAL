@@ -24,12 +24,21 @@ describe("category model integration", () => {
         id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         name character varying NOT NULL UNIQUE,
         type character varying NOT NULL,
-        is_active boolean DEFAULT true NOT NULL
+        is_active boolean DEFAULT true NOT NULL,
+        is_default boolean DEFAULT false NOT NULL
       )`,
+    );
+    await client.query(
+      `CREATE UNIQUE INDEX idx_categories_one_default_per_type
+        ON categories (type) WHERE is_default = true`,
     );
     vi.spyOn(modelPool, "query").mockImplementation((...args) =>
       client.query(...args),
     );
+    vi.spyOn(modelPool, "connect").mockResolvedValue({
+      query: (...args) => client.query(...args),
+      release: () => {},
+    });
   });
 
   afterAll(async () => {
@@ -87,6 +96,7 @@ describe("category model integration", () => {
       name: `Updated ${first.name}`,
       type: "service",
       is_active: false,
+      is_default: false,
     });
     expect(await categoryModel.getCategoryByName(updated.name)).toEqual(updated);
     const renamed = await categoryModel.updateCategory({
@@ -117,7 +127,6 @@ describe("category model integration", () => {
   it("deletes a category and returns the deleted record", async () => {
     const category = await categoryModel.insertCategory(
       `Delete ${randomUUID()}`,
-      "To delete",
       "service",
     );
 
@@ -125,5 +134,40 @@ describe("category model integration", () => {
       category,
     );
     await expect(categoryModel.deleteCategory(category.id)).resolves.toBeUndefined();
+  });
+
+  it("keeps one default service category and rejects policy defaults", async () => {
+    const key = randomUUID();
+    const serviceA = await categoryModel.insertCategory(`A ${key}`, "service");
+    const serviceB = await categoryModel.insertCategory(`B ${key}`, "service");
+    const policy = await categoryModel.insertCategory(`P ${key}`, "policy");
+
+    await expect(
+      categoryModel.setDefaultCategory(policy.id, true),
+    ).rejects.toMatchObject({ code: "NOT_SERVICE_CATEGORY" });
+    await categoryModel.setDefaultCategory(serviceA.id, true);
+    const newDefault = await categoryModel.setDefaultCategory(serviceB.id, true);
+
+    expect(newDefault.is_default).toBe(true);
+    const services = await categoryModel.getAllCategories("service");
+    expect(services.every((category) => category.type === "service")).toBe(true);
+    expect(services.filter((category) => category.is_default)).toEqual([
+      newDefault,
+    ]);
+    const unset = await categoryModel.setDefaultCategory(serviceB.id, false);
+    expect(unset.is_default).toBe(false);
+    expect(
+      (await categoryModel.getAllCategories("service")).some(
+        (category) => category.is_default,
+      ),
+    ).toBe(false);
+    expect(
+      (await categoryModel.getAllCategories("policy")).find(
+        (category) => category.id === policy.id,
+      ).is_default,
+    ).toBe(false);
+    expect(
+      await categoryModel.setDefaultCategory(2147483647, true),
+    ).toBeUndefined();
   });
 });
