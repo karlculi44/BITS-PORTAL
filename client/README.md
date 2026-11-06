@@ -15,6 +15,14 @@ stored refresh token; an already issued access JWT remains valid until expiry.
 The development server proxies `/api` to the backend. A cross-origin API
 deployment must separately configure the backend to allow credentialed CORS.
 
+## Services
+
+The Services page loads the list from `GET /api/services`. Admins can create
+and edit services in a modal using `GET /api/categories`, `POST /api/services`,
+and `PATCH /api/services/:id`. The backend accepts an image string but has no
+file-upload mechanism, so the modal accepts an image URL instead. Delete remains
+a visual placeholder and does not send requests.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Services from "./pages/Services";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -26,7 +27,7 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/services" element={<Placeholder name="Services" />} />
+            <Route path="/services" element={<Services />} />
             <Route path="/policies" element={<Placeholder name="Policies" />} />
             <Route
               path="/categories"
