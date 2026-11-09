@@ -1,6 +1,6 @@
 import { removeServiceLogo } from "../utils/serviceLogo.js";
 
-const validate = (schema) => {
+const validate = (schema, onValidationError) => {
   return async (req, res, next) => {
     const result = schema.safeParse(req.body);
 
@@ -10,6 +10,14 @@ const validate = (schema) => {
           await (req.removeUploadedFile ?? removeServiceLogo)(
             req.file.filename,
           );
+        } catch (error) {
+          return next(error);
+        }
+      }
+
+      if (onValidationError) {
+        try {
+          await onValidationError(req);
         } catch (error) {
           return next(error);
         }

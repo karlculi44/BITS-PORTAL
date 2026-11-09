@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { testPool, verifyTestDatabase } from "../helpers/testDatabase.js";
-import { getAuditLogs, getAuditSummary } from "../../src/models/auditLogModel.js";
+import { getAuditLogs, getAuditSummary, insertAuditLog } from "../../src/models/auditLogModel.js";
 import pool from "../../src/config/db.js";
 
 beforeAll(verifyTestDatabase);
@@ -11,6 +12,42 @@ afterAll(async () => {
 });
 
 describe("audit log queries", () => {
+  it("resolves failed-login avatars by exact attempted username without changing other logs", async () => {
+    const client = await testPool.connect();
+    const username = `audit_${randomUUID()}_${"x".repeat(50)}`;
+    const module = `test_${randomUUID()}`;
+    const image = "123e4567-e89b-42d3-a456-426614174000.png";
+    try {
+      await client.query("BEGIN");
+      const migration = await readFile(
+        new URL("../../db/migrations/003_audit_log_username_length.sql", import.meta.url),
+        "utf8",
+      );
+      await client.query(migration.replace(/^BEGIN;\s*/, "").replace(/\s*COMMIT;\s*$/, ""));
+      await client.query(
+        `INSERT INTO users (first_name, last_name, username, password_hash, role, profile_image)
+         VALUES ('Matched', 'User', $1, 'hash', 'staff', $2)`,
+        [username, image],
+      );
+      await insertAuditLog({ username, action: "Login Failed", module, details: "matched" }, client);
+      await insertAuditLog({ username: `${username}unknown`, action: "Login Failed", module, details: "unknown" }, client);
+      await insertAuditLog({ username, action: "Edit", module, details: "not a failed login" }, client);
+      const rows = await getAuditLogs({ module }, client);
+      expect(rows.find((row) => row.details === "matched")).toMatchObject({
+        username, first_name: "Matched", profile_image: image,
+      });
+      expect(rows.find((row) => row.details === "unknown")).toMatchObject({
+        first_name: null, profile_image: null,
+      });
+      expect(rows.find((row) => row.details === "not a failed login")).toMatchObject({
+        first_name: null, profile_image: null,
+      });
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+
   it("uses AND filters, literal username matching, date bounds, and unfiltered totals", async () => {
     const client = await testPool.connect();
     const module = `test_${randomUUID()}`;

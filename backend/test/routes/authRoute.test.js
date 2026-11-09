@@ -16,10 +16,12 @@ vi.mock("../../src/services/authService.js", () => ({
 
 import app from "../../src/app.js";
 import * as authService from "../../src/services/authService.js";
+import * as auditLogService from "../../src/services/auditLogService.js";
 
 describe("POST /api/auth/login", () => {
   beforeEach(() => {
     authService.loginUser.mockReset();
+    auditLogService.recordAuditEvent.mockReset();
   });
 
   describe("authentication session", () => {
@@ -183,6 +185,24 @@ describe("POST /api/auth/login", () => {
         input,
         { userId: null, ipAddress: null },
       );
+    } finally {
+      errorLogger.mockRestore();
+    }
+  });
+
+  it("records authentication service failures without exposing their details", async () => {
+    authService.loginUser.mockRejectedValueOnce(new Error("database unavailable"));
+    const errorLogger = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const response = await request(app).post("/api/auth/login")
+        .send({ username: "testuser", password: "private-password" });
+      expect(response.status).toBe(500);
+      expect(auditLogService.recordAuditEvent).toHaveBeenCalledWith({
+        userId: null, ipAddress: null, username: "testuser", action: "Login Failed",
+        module: "Auth", details: "Failed login attempt for username: testuser",
+      });
+      expect(JSON.stringify(auditLogService.recordAuditEvent.mock.calls)).not.toContain("private-password");
+      expect(JSON.stringify(auditLogService.recordAuditEvent.mock.calls)).not.toContain("database unavailable");
     } finally {
       errorLogger.mockRestore();
     }

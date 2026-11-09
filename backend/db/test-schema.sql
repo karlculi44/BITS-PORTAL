@@ -77,7 +77,7 @@ CREATE INDEX idx_refresh_tokens_user_id
 CREATE TABLE public.logs (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id integer REFERENCES public.users(id) ON DELETE SET NULL,
-  username character varying(50),
+  username text,
   action character varying(50) NOT NULL,
   module character varying(50) NOT NULL,
   details text,

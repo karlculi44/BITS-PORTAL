@@ -12,9 +12,12 @@ export const getAuditLogs = async ({ module, action, username, start, end }, db 
   const result = await db.query(
     `SELECT logs.id, logs.username, logs.action, logs.module, logs.details,
       host(logs.ip_address) AS ip_address, logs.created_at,
-      users.first_name, users.profile_image
+      coalesce(users.first_name, attempted_user.first_name) AS first_name,
+      coalesce(users.profile_image, attempted_user.profile_image) AS profile_image
     FROM logs
     LEFT JOIN users ON users.id = logs.user_id
+    LEFT JOIN users AS attempted_user ON logs.user_id IS NULL
+      AND logs.action = 'Login Failed' AND attempted_user.username = logs.username
     WHERE ($1::text IS NULL OR logs.module = $1)
       AND ($2::text IS NULL OR logs.action = $2)
       AND ($3::text IS NULL OR strpos(lower(coalesce(logs.username, '')), lower($3)) > 0)

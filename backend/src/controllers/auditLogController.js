@@ -7,7 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 const querySchema = z.object({
   module: z.string().max(50).optional(),
   action: z.string().max(50).optional(),
-  username: z.string().max(50).optional(),
+  username: z.string().optional(),
   start: z.iso.datetime({ offset: true }).optional(),
   end: z.iso.datetime({ offset: true }).optional(),
 }).strict().refine(

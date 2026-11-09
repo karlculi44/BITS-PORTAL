@@ -59,6 +59,11 @@ describe("automatic audit recording", () => {
     const failed = await request(app).post("/api/auth/login")
       .send({ username: missingUsername, password: "wrong-password-123" });
     expect(failed.status).toBe(401);
+    const wrongPassword = await request(app).post("/api/auth/login")
+      .send({ username, password: "incorrect-password" });
+    expect(wrongPassword.status).toBe(401);
+    const image = "123e4567-e89b-42d3-a456-426614174000.png";
+    await testPool.query("UPDATE users SET profile_image = $1 WHERE id = $2", [image, actor.id]);
     const login = await request(app).post("/api/auth/login")
       .set("X-Forwarded-For", "203.0.113.99")
       .send({ username, password: "test-password-123" });
@@ -72,10 +77,23 @@ describe("automatic audit recording", () => {
       "SELECT username, action, details, host(ip_address) AS ip FROM logs WHERE username IN ($1, $2) ORDER BY id",
       [username, missingUsername],
     );
-    expect(logs.rows.map((row) => row.action)).toEqual(["Login Failed", "Login"]);
+    expect(logs.rows.map((row) => row.action)).toEqual(["Login Failed", "Login Failed", "Login"]);
     expect(logs.rows[0].details).toContain(missingUsername);
+    expect(logs.rows[1].details).toContain(username);
+    expect(logs.rows[0].ip).toBeTruthy();
+    expect(logs.rows[1].ip).toBeTruthy();
     expect(JSON.stringify(logs.rows)).not.toContain("password-123");
-    expect(logs.rows[1].ip).not.toBe("203.0.113.99");
+    expect(JSON.stringify(logs.rows)).not.toContain("incorrect-password");
+    expect(logs.rows[2].ip).not.toBe("203.0.113.99");
+
+    const auditResponse = await auth(request(app).get("/api/audit-logs")).query({ action: "Login Failed" });
+    expect(auditResponse.status).toBe(200);
+    expect(auditResponse.body.logs.find((log) => log.user.username === username).user).toMatchObject({
+      first_name: "Audit", profile_image: `/api/users/images/${image}`,
+    });
+    expect(auditResponse.body.logs.find((log) => log.user.username === missingUsername).user).toMatchObject({
+      first_name: null, profile_image: null,
+    });
   });
 
   it("records categories, services, policies, and user changes with the authenticated actor", async () => {
@@ -142,7 +160,7 @@ describe("automatic audit recording", () => {
     expect(result.status).toBe(200);
     expect(result.body.logs.some((log) => log.details === `Changed service category for: ${name}`)).toBe(true);
     expect(result.body.summary.add).toBeGreaterThanOrEqual(7);
-    const logs = await testPool.query("SELECT user_id, action, module, details FROM logs WHERE username = $1", [username]);
+    const logs = await testPool.query("SELECT user_id, action, module, details FROM logs WHERE username = $1 AND action != 'Login Failed'", [username]);
     expect(logs.rows.every((row) => row.user_id === actor.id)).toBe(true);
     const details = logs.rows.map((row) => row.details).join("\n");
     expect(details).toContain("Changed default service category to: All Categories");

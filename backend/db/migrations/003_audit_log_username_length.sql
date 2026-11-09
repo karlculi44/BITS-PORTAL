@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE logs ALTER COLUMN username TYPE TEXT;
+
+COMMIT;

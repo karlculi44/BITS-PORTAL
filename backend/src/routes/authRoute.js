@@ -3,6 +3,7 @@ import {
   getSessionController,
   loginUserController,
   logoutUserController,
+  recordFailedLogin,
   refreshUserController,
 } from "../controllers/authController.js";
 import validate from "../middlewares/validate.js";
@@ -11,7 +12,7 @@ import { loginSchema } from "../schemas/authSchema.js";
 
 const router = Router();
 
-router.post("/login", validate(loginSchema), loginUserController);
+router.post("/login", validate(loginSchema, recordFailedLogin), loginUserController);
 router.post("/refresh", refreshUserController);
 router.get("/session", verifyToken, getSessionController);
 router.post("/logout", logoutUserController);

@@ -39,6 +39,24 @@ describe("AuditLogsTable", () => {
     expect(screen.getByText("T")).toBeTruthy();
   });
 
+  it("shows failed-login avatars for matched users and initials for unknown usernames", () => {
+    const logs = [
+      {
+        ...auditLogExamples[0], action: "Login Failed",
+        user: { username: "known", first_name: "Known", profile_image: "/api/users/images/avatar.png" },
+      },
+      {
+        ...auditLogExamples[1], action: "Login Failed",
+        user: { username: "unknown", first_name: null, profile_image: null },
+      },
+    ];
+    render(<AuditLogsTable logs={logs} />);
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows[0].querySelector("img").getAttribute("src")).toContain("/api/users/images/avatar.png");
+    expect(rows[1].querySelector("img")).toBeNull();
+    expect(within(rows[1]).getByText("U")).toBeTruthy();
+  });
+
   it("keeps long details in a scrollable table and handles an empty list", () => {
     const details = "A".repeat(300);
     const { rerender } = render(<AuditLogsTable logs={[{ ...auditLogExamples[0], details }]} />);
