@@ -149,24 +149,44 @@ describe("AuthProvider", () => {
     );
   });
 
-  it("shows login errors without authenticating", async () => {
+  it.each([
+    ["testuser", "wrong"],
+    ["ab", "password123"],
+  ])("shows invalid credentials without authenticating", async (username, password) => {
     authService.login.mockRejectedValue({
-      response: { data: { message: "Invalid username or password" } },
+      response: { status: 401, data: { message: "Invalid credentials." } },
     });
     renderApp();
     await screen.findByText("signed out");
     fireEvent.change(screen.getByLabelText("Username"), {
-      target: { value: "testuser" },
+      target: { value: username },
     });
     fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: "wrong" },
+      target: { value: password },
     });
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
     await screen.findByRole("alert");
     expect(screen.getByRole("alert").textContent).toBe(
-      "Invalid username or password",
+      "Invalid credentials.",
     );
     expect(screen.getByTestId("status").textContent).toBe("signed out");
+    expect(authService.login).toHaveBeenCalledWith({ username, password });
+  });
+
+  it.each([
+    ["", "", "Username and password are required."],
+    ["", "password", "Username is required"],
+    ["testuser", "", "Password is required"],
+    [" ", "password", "Username is required"],
+    ["testuser", " ", "Password is required"],
+  ])("shows required messages for empty login fields", async (username, password, message) => {
+    renderApp();
+    await screen.findByText("signed out");
+    fireEvent.change(screen.getByLabelText("Username"), { target: { value: username } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: password } });
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
+    expect(screen.getByRole("alert").textContent).toBe(message);
+    expect(authService.login).not.toHaveBeenCalled();
   });
 
   it("logs out and redirects to login", async () => {

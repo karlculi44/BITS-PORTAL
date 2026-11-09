@@ -146,19 +146,27 @@ describe("POST /api/auth/login", () => {
     expect(response.body).not.toHaveProperty("refreshToken");
   });
 
-  it("rejects invalid login input without calling the auth service", async () => {
+  it.each([
+    [{ username: "", password: "password" }, "Username is required"],
+    [{ username: "testuser", password: "" }, "Password is required"],
+    [{ username: " ", password: "password" }, "Username is required"],
+    [{ username: "testuser", password: " " }, "Password is required"],
+  ])("rejects empty login fields without calling the auth service", async (input, message) => {
     const response = await request(app)
       .post("/api/auth/login")
-      .send({ username: "ab", password: "short" });
+      .send(input);
 
     expect(response.status).toBe(400);
-    expect(response.body.errors).toBeDefined();
+    expect(response.body.errors[0].message).toBe(message);
     expect(authService.loginUser).not.toHaveBeenCalled();
   });
 
-  it("returns unauthorized when the credentials are invalid", async () => {
+  it.each([
+    { username: "testuser", password: "wrong" },
+    { username: "ab", password: "password123" },
+  ])("passes nonempty credentials to authentication and returns its error", async (input) => {
     authService.loginUser.mockRejectedValueOnce(
-      Object.assign(new Error("Invalid username or password"), {
+      Object.assign(new Error("Invalid credentials."), {
         statusCode: 401,
       }),
     );
@@ -167,10 +175,14 @@ describe("POST /api/auth/login", () => {
     try {
       const response = await request(app)
         .post("/api/auth/login")
-        .send({ username: "testuser", password: "password123" });
+        .send(input);
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe("Invalid username or password");
+      expect(response.body.message).toBe("Invalid credentials.");
+      expect(authService.loginUser).toHaveBeenCalledWith(
+        input,
+        { userId: null, ipAddress: null },
+      );
     } finally {
       errorLogger.mockRestore();
     }

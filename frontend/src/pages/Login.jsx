@@ -25,8 +25,16 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    if (!username.trim() || !password.trim()) {
+    if (!username.trim() && !password.trim()) {
       setError("Username and password are required.");
+      return;
+    }
+    if (!username.trim()) {
+      setError("Username is required");
+      return;
+    }
+    if (!password.trim()) {
+      setError("Password is required");
       return;
     }
 

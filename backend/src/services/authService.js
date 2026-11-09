@@ -28,13 +28,13 @@ export const loginUser = async ({ username, password }, context) => {
   const user = await userModel.getUserForLogin(username);
 
   if (!user || !user.is_active) {
-    throw new AppError("Invalid username or password", 401);
+    throw new AppError("Invalid credentials.", 401);
   }
 
   const isPasswordValid = await bcrypt.compare(password, user?.password_hash);
 
   if (!isPasswordValid) {
-    throw new AppError("Invalid username or password", 401);
+    throw new AppError("Invalid credentials.", 401);
   }
 
   if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {

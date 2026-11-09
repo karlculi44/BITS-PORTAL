@@ -73,7 +73,7 @@ describe("loginUser", () => {
     await expect(
       loginUser({ username: "unknown", password: "correct-password" }),
     ).rejects.toMatchObject({
-      message: "Invalid username or password",
+      message: "Invalid credentials.",
       statusCode: 401,
     });
 
@@ -85,7 +85,7 @@ describe("loginUser", () => {
     await expect(
       loginUser({ username: user.username, password: "correct-password" }),
     ).rejects.toMatchObject({
-      message: "Invalid username or password",
+      message: "Invalid credentials.",
       statusCode: 401,
     });
     expect(authModel.insertRefreshToken).not.toHaveBeenCalled();
@@ -95,9 +95,9 @@ describe("loginUser", () => {
     userModel.getUserForLogin.mockResolvedValueOnce(user);
 
     await expect(
-      loginUser({ username: user.username, password: "wrong-password" }),
+      loginUser({ username: user.username, password: "wrong" }),
     ).rejects.toMatchObject({
-      message: "Invalid username or password",
+      message: "Invalid credentials.",
       statusCode: 401,
     });
     expect(authModel.insertRefreshToken).not.toHaveBeenCalled();
