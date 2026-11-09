@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
 
@@ -51,7 +51,7 @@ function Login() {
   };
 
   return (
-    <main className="login-page relative z-10 flex min-h-screen items-center justify-center px-4">
+    <main className="login-page relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
         <h1 className="text-center text-2xl font-bold text-slate-800">
           BITS Portal
@@ -126,6 +126,13 @@ function Login() {
           </button>
         </form>
       </div>
+      <Link
+        to="/"
+        className="mt-4 inline-flex items-center gap-2 rounded-sm px-2 py-2 text-sm font-medium text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-blue-700"
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+        Home
+      </Link>
     </main>
   );
 }
