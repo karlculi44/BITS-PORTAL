@@ -28,6 +28,10 @@ The public navbar shows Login when signed out and a dashboard link with the
 user's profile picture when signed in. It falls back to a profile icon if the
 picture is unavailable, and hides the action while the session is restored.
 The admin sidebar also provides a Return to Homepage link without signing out.
+These two links use a shared full-screen transition before navigating; visitors
+who prefer reduced motion navigate immediately. Direct URLs and browser history
+retain their normal routing behavior.
+The landing page also fades in when it loads, unless reduced motion is enabled.
 
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor

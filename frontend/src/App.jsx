@@ -14,12 +14,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeProvider";
 import NetworkBackground from "./components/NetworkBackground";
 import ScrollProgress from "./components/ScrollProgress";
+import PageTransition from "./components/PageTransition";
 
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <>
+        <PageTransition>
           <NetworkBackground />
           <ScrollProgress />
           <Toaster position="top-right" />
@@ -80,7 +81,7 @@ function App() {
               />
             </Route>
           </Routes>
-        </>
+        </PageTransition>
       </BrowserRouter>
     </ThemeProvider>
   );

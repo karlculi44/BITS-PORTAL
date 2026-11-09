@@ -489,6 +489,7 @@ function PublicLandingPage() {
               (user ? (
                 <Link
                   to="/dashboard"
+                  data-page-transition
                   className="public-profile-link"
                   aria-label="Go to dashboard"
                   title="Go to dashboard"

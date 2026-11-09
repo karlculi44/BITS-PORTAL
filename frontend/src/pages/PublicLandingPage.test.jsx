@@ -151,6 +151,7 @@ describe("Public landing page", () => {
 
       const homepageLink = screen.getByRole("link", { name: "Return to Homepage" });
       expect(homepageLink.getAttribute("href")).toBe("/");
+      expect(homepageLink.hasAttribute("data-page-transition")).toBe(true);
       fireEvent.click(homepageLink);
 
       expect(onClose).toHaveBeenCalledOnce();
@@ -197,6 +198,7 @@ describe("Public landing page", () => {
 
     const profileLink = screen.getByRole("link", { name: "Go to dashboard" });
     expect(profileLink.getAttribute("href")).toBe("/dashboard");
+    expect(profileLink.hasAttribute("data-page-transition")).toBe(true);
     expect(profileLink.querySelector("img").getAttribute("src")).toBe(
       `${window.location.origin}/api/users/images/avatar.png`,
     );

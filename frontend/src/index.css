@@ -262,6 +262,16 @@ select option {
   opacity: 0.72;
 }
 
+.page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 75% 20%, rgba(80, 175, 255, 0.25), transparent 45%),
+    linear-gradient(115deg, rgba(7, 24, 54, 0.99), rgba(15, 70, 139, 0.98) 55%, rgba(18, 107, 181, 0.98));
+}
+
 .sidebar {
   box-shadow: var(--app-shadow);
 }
@@ -439,6 +449,7 @@ select option {
   isolation: isolate;
   min-height: 100vh;
   overflow-x: clip;
+  animation: public-page-fade-in 500ms ease-out;
   background:
     radial-gradient(ellipse at 50% 40%, transparent 42%, color-mix(in srgb, var(--app-text) 4%, transparent) 100%),
     radial-gradient(ellipse at 86% 32%, color-mix(in srgb, var(--app-primary) 7%, transparent), transparent 34rem),
@@ -446,6 +457,15 @@ select option {
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--app-primary) 3%, transparent) 0 1px, transparent 1px 48px),
     var(--app-bg);
   color: var(--app-text);
+}
+
+@keyframes public-page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .public-header {
@@ -1713,6 +1733,7 @@ a.public-service-card:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .public-portal,
   .public-identity-card::after {
     animation: none;
   }
