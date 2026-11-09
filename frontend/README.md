@@ -27,6 +27,7 @@ admins can create and edit services using `POST /api/services` and
 The public navbar shows Login when signed out and a dashboard link with the
 user's profile picture when signed in. It falls back to a profile icon if the
 picture is unavailable, and hides the action while the session is restored.
+The admin sidebar also provides a Return to Homepage link without signing out.
 
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor

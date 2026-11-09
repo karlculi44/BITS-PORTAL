@@ -1,6 +1,6 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { LogOut, PanelsTopLeft } from "lucide-react";
+import { House, LogOut, PanelsTopLeft } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { canViewNavItem, navItems } from "./navItems";
 
@@ -71,6 +71,14 @@ function Sidebar({ open, onClose }) {
             ))}
         </nav>
         <div className="space-y-1 border-t border-slate-200 p-3">
+          <Link
+            to="/"
+            onClick={onClose}
+            className="sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-700"
+          >
+            <House size={18} aria-hidden="true" />
+            Return to Homepage
+          </Link>
           <button
             type="button"
             onClick={handleLogout}

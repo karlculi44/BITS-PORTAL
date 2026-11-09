@@ -12,9 +12,10 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../context/AuthContext";
 import { AuthContext } from "../context/authContextValue";
 import { ThemeProvider } from "../context/ThemeProvider";
+import Sidebar from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import * as authService from "../services/authService";
-import { setAccessToken } from "../services/api";
+import { getAccessToken, setAccessToken } from "../services/api";
 import { getServices } from "../services/dashboardService";
 import { getServiceCategories } from "../services/serviceService";
 import PublicLandingPage from "./PublicLandingPage";
@@ -126,6 +127,43 @@ afterEach(() => {
 });
 
 describe("Public landing page", () => {
+  it.each(["/dashboard", "/services", "/users"])(
+    "returns from %s to the homepage without signing out",
+    async (path) => {
+      authService.refresh.mockResolvedValue({
+        data: { id: 1, role: "admin", profile_image: "/api/users/images/avatar.png" },
+        accessToken: "session-token",
+      });
+      const onClose = vi.fn();
+      render(
+        <AuthProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <ThemeProvider>
+              <Routes>
+                <Route path="/" element={<PublicLandingPage />} />
+                <Route path="*" element={<Sidebar open onClose={onClose} />} />
+              </Routes>
+            </ThemeProvider>
+          </MemoryRouter>
+        </AuthProvider>,
+      );
+      await waitFor(() => expect(getAccessToken()).toBe("session-token"));
+
+      const homepageLink = screen.getByRole("link", { name: "Return to Homepage" });
+      expect(homepageLink.getAttribute("href")).toBe("/");
+      fireEvent.click(homepageLink);
+
+      expect(onClose).toHaveBeenCalledOnce();
+      const profileLink = screen.getByRole("link", { name: "Go to dashboard" });
+      expect(profileLink.querySelector("img").getAttribute("src")).toBe(
+        `${window.location.origin}/api/users/images/avatar.png`,
+      );
+      expect(screen.queryByRole("link", { name: "Login" })).toBeNull();
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(getAccessToken()).toBe("session-token");
+    },
+  );
+
   it("waits for an unauthenticated session before showing the login link", async () => {
     let rejectRefresh;
     authService.refresh.mockReturnValue(new Promise((_, reject) => {
