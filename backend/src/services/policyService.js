@@ -1,5 +1,6 @@
 import * as policyModel from "../models/policyModel.js";
 import AppError from "../utils/AppError.js";
+import { withAuditTransaction } from "./auditLogService.js";
 import {
   isManagedPolicyDocument,
   removePolicyDocument,
@@ -39,7 +40,7 @@ export const getPolicyById = async (policyId) => {
   return policy;
 };
 
-export const createPolicy = async (policy) => {
+export const createPolicy = async (policy, context) => {
   try {
     const category = await policyModel.getCategoryById(policy.category_id);
 
@@ -51,7 +52,11 @@ export const createPolicy = async (policy) => {
       throw new AppError("Category must be a policy category", 400);
     }
 
-    const createdPolicy = await policyModel.insertPolicy(policy);
+    const createdPolicy = context
+      ? await withAuditTransaction(context, "Add", "Policies",
+        (db) => policyModel.insertPolicy(policy, db),
+        (created) => `Added policy: ${created.title}`)
+      : await policyModel.insertPolicy(policy);
 
     if (createdPolicy) return createdPolicy;
 
@@ -79,7 +84,7 @@ export const createPolicy = async (policy) => {
   }
 };
 
-export const updatePolicy = async (policyId, policy) => {
+export const updatePolicy = async (policyId, policy, context) => {
   const validateCategory = async () => {
     const category = await policyModel.getCategoryById(policy.category_id);
 
@@ -99,7 +104,18 @@ export const updatePolicy = async (policyId, policy) => {
       await validateCategory();
     }
 
-    updatedPolicy = await policyModel.updatePolicy(policyId, policy);
+    updatedPolicy = context
+      ? await withAuditTransaction(context, "Edit", "Policies",
+        (db) => policyModel.updatePolicy(policyId, policy, db),
+        (updated) => {
+          const changes = [];
+          if (updated.previous_category_id !== undefined && updated.previous_category_id !== updated.category_id) changes.push("Changed category");
+          if (updated.previous_file && updated.previous_file !== updated.file) changes.push("Replaced document");
+          return changes.length
+            ? `${changes.join("; ")} for policy: ${updated.title}`
+            : `Updated policy: ${updated.title}`;
+        })
+      : await policyModel.updatePolicy(policyId, policy);
 
     if (!updatedPolicy) {
       if (policy.category_id !== undefined) {
@@ -127,12 +143,16 @@ export const updatePolicy = async (policyId, policy) => {
 
   if (!Object.hasOwn(updatedPolicy, "previous_file")) return updatedPolicy;
 
-  const { previous_file: _previousFile, ...result } = updatedPolicy;
+  const { previous_file: _previousFile, previous_category_id: _previousCategoryId, ...result } = updatedPolicy;
   return result;
 };
 
-export const deletePolicy = async (policyId) => {
-  const policy = await policyModel.deletePolicy(policyId);
+export const deletePolicy = async (policyId, context) => {
+  const policy = context
+    ? await withAuditTransaction(context, "Delete", "Policies",
+      (db) => policyModel.deletePolicy(policyId, db),
+      (deleted) => `Deleted policy: ${deleted.title}`)
+    : await policyModel.deletePolicy(policyId);
 
   if (!policy) {
     throw new AppError("Policy not found", 404);

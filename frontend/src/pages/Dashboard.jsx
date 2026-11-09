@@ -190,8 +190,7 @@ function Dashboard() {
         <Section title="Recent Activity">
           <p className="flex items-center gap-2 text-sm text-slate-500">
             <Info size={16} />
-            Activity logs are not available yet: the backend has no logs API or
-            logs table.
+            Administrators can view activity in the Activity Logs page.
           </p>
         </Section>
       )}

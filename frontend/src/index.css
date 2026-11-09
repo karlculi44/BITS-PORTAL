@@ -26,6 +26,8 @@
   --color-emerald-100: var(--app-success-subtle);
   --color-emerald-600: var(--app-success-text);
   --color-emerald-700: var(--app-success-text);
+  --color-amber-100: var(--app-warning-bg);
+  --color-amber-700: var(--app-warning-text);
   --color-purple-100: var(--app-purple-bg);
   --color-purple-500: var(--app-primary);
   --color-purple-600: var(--app-primary-hover);
@@ -58,6 +60,8 @@
   --app-success-bg: #ecfdf5;
   --app-success-subtle: #d1fae5;
   --app-success-text: #047857;
+  --app-warning-bg: #fef3c7;
+  --app-warning-text: #92400e;
   --app-purple-bg: #f3e8ff;
   --app-purple-text: #7e22ce;
   --app-shadow: 0 1px 3px rgb(23 43 77 / 7%), 0 8px 24px rgb(23 43 77 / 3%);
@@ -92,6 +96,8 @@
   --app-success-bg: #12352d;
   --app-success-subtle: #174838;
   --app-success-text: #6ee7b7;
+  --app-warning-bg: #493416;
+  --app-warning-text: #fcd34d;
   --app-purple-bg: #33244c;
   --app-purple-text: #d8b4fe;
   --app-shadow: 0 12px 32px rgb(0 0 0 / 22%);

@@ -1,6 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import * as authService from "../services/authService.js";
+import { recordAuditEvent, requestAuditContext } from "../services/auditLogService.js";
 
 const cookieOptions = () => ({
   httpOnly: true,
@@ -20,10 +21,24 @@ export const loginUserController = asyncHandler(async (req, res) => {
     throw new AppError("Username and password are required", 400);
   }
 
-  const { user, accessToken, refreshToken } = await authService.loginUser({
-    username,
-    password,
-  });
+  let session;
+  try {
+    session = await authService.loginUser({ username, password }, requestAuditContext(req));
+  } catch (error) {
+    if (error.statusCode === 401) {
+      const attemptedUsername = username.slice(0, 50);
+      await recordAuditEvent({
+        ...requestAuditContext(req),
+        userId: null,
+        username: attemptedUsername,
+        action: "Login Failed",
+        module: "Auth",
+        details: `Failed login attempt for username: ${attemptedUsername}`,
+      });
+    }
+    throw error;
+  }
+  const { user, accessToken, refreshToken } = session;
 
   res.cookie("accessToken", accessToken, {
     ...cookieOptions(),
@@ -68,7 +83,9 @@ export const refreshUserController = asyncHandler(async (req, res) => {
 });
 
 export const logoutUserController = asyncHandler(async (req, res) => {
-  await authService.logoutUser(req.cookies?.refreshToken);
+  const accessToken = req.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ??
+    req.cookies?.accessToken;
+  await authService.logoutUser(req.cookies?.refreshToken, requestAuditContext(req), accessToken);
   res.clearCookie("accessToken", cookieOptions());
   res.clearCookie("refreshToken", cookieOptions());
   res.json({ message: "Logout successful" });

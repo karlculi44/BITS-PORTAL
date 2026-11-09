@@ -6,6 +6,7 @@ import * as userModel from "../models/userModel.js";
 import AppError from "../utils/AppError.js";
 import { hashToken } from "../utils/hashToken.js";
 import { formatUserAvatar } from "../utils/userAvatar.js";
+import { recordAuditEvent, withAuditTransaction, withTransaction } from "./auditLogService.js";
 
 const createAccessToken = (user) =>
   jwt.sign(
@@ -23,7 +24,7 @@ const createRefreshToken = (userId) =>
     expiresIn: "7d",
   });
 
-export const loginUser = async ({ username, password }) => {
+export const loginUser = async ({ username, password }, context) => {
   const user = await userModel.getUserForLogin(username);
 
   if (!user || !user.is_active) {
@@ -59,11 +60,20 @@ export const loginUser = async ({ username, password }) => {
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  await authModel.insertRefreshToken({
+  const tokenData = {
     userId: user.id,
     tokenHash: hashToken(refreshToken),
     expiresAt,
-  });
+  };
+  if (context) {
+    await withAuditTransaction(
+      { ...context, userId: user.id }, "Login", "Auth",
+      async (db) => { await authModel.insertRefreshToken(tokenData, db); return user; },
+      () => "User logged in successfully",
+    );
+  } else {
+    await authModel.insertRefreshToken(tokenData);
+  }
 
   return {
     user: userData,
@@ -118,8 +128,41 @@ export const getSessionUser = async (userId) => {
   return formatUserAvatar(user);
 };
 
-export const logoutUser = async (refreshToken) => {
+export const logoutUser = async (refreshToken, context, accessToken) => {
   if (refreshToken) {
-    await authModel.revokeRefreshToken(hashToken(refreshToken));
+    if (!context) {
+      await authModel.revokeRefreshToken(hashToken(refreshToken));
+      return;
+    }
+    const revoked = await withTransaction(async (client) => {
+      const revoked = await authModel.revokeRefreshToken(hashToken(refreshToken), client);
+      if (revoked) {
+        const user = await client.query("SELECT username FROM users WHERE id = $1", [revoked.user_id]);
+        await recordAuditEvent({
+          userId: revoked.user_id, username: user.rows[0]?.username ?? null,
+          action: "Logout", module: "Auth", details: "User logged out",
+          ipAddress: context.ipAddress,
+        }, client);
+      }
+      return revoked;
+    });
+    if (revoked) return;
+  }
+  if (context && accessToken) {
+    let claims;
+    try {
+      claims = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError) return;
+      throw error;
+    }
+    const user = await userModel.getUserById(claims.sub);
+    if (user) {
+      await withAuditTransaction(
+        { ...context, userId: user.id }, "Logout", "Auth",
+        async () => user,
+        () => "User logged out",
+      );
+    }
   }
 };

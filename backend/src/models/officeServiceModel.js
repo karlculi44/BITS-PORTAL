@@ -28,7 +28,7 @@ export const insertService = async ({
   description,
   sort_order,
   category_id,
-}) => {
+}, db = pool) => {
   const columns = ["title", "url", "image", "description"];
   const values = [title, url, image ?? null, description];
   const placeholders = ["$1", "$2", "$3", "$4"];
@@ -42,7 +42,7 @@ export const insertService = async ({
   values.push(category_id);
   columns.push("category_id");
 
-  const result = await pool.query(
+  const result = await db.query(
     `INSERT INTO services (${columns.join(", ")})
     SELECT ${placeholders.join(", ")}, category.id
     FROM categories AS category
@@ -81,7 +81,7 @@ export const isServiceImageReferenced = async (image) => {
   return result.rows[0].referenced;
 };
 
-export const updateService = async (serviceId, service) => {
+export const updateService = async (serviceId, service, db = pool) => {
   const updates = [];
   const values = [];
   let categoryIdIndex;
@@ -122,7 +122,7 @@ export const updateService = async (serviceId, service) => {
   const serviceIdIndex = values.length;
   const ctes = [
     `existing_service AS MATERIALIZED (
-      SELECT id, image
+      SELECT id, image, category_id
       FROM services
       WHERE id = $${serviceIdIndex}
       FOR UPDATE
@@ -157,15 +157,16 @@ export const updateService = async (serviceId, service) => {
         services.is_default,
         services.created_at,
         services.updated_at,
-        existing_service.image AS previous_image`;
+        existing_service.image AS previous_image,
+        existing_service.category_id AS previous_category_id`;
 
-  const result = await pool.query(query, values);
+  const result = await db.query(query, values);
 
   return result.rows[0];
 };
 
-export const setDefaultService = async (serviceId) => {
-  const result = await pool.query(
+export const setDefaultService = async (serviceId, db = pool) => {
+  const result = await db.query(
     `WITH target AS MATERIALIZED (
       SELECT id
       FROM services
@@ -190,8 +191,8 @@ export const setDefaultService = async (serviceId) => {
   return result.rows[0];
 };
 
-export const deleteService = async (serviceId) => {
-  const result = await pool.query(
+export const deleteService = async (serviceId, db = pool) => {
+  const result = await db.query(
     `DELETE FROM services
     WHERE id = $1
     RETURNING id, title, url, image, description, sort_order, category_id, is_default, created_at, updated_at`,

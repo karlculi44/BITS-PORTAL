@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import * as userModel from "../models/userModel.js";
 import AppError from "../utils/AppError.js";
+import { withAuditTransaction } from "./auditLogService.js";
 import {
   formatUserAvatar,
   formatUserAvatars,
@@ -17,8 +18,12 @@ export const getAllUsers = async () => {
   return formatUserAvatars(await userModel.getAllUsers());
 };
 
-export const deleteUser = async (userId) => {
-  const user = await userModel.deleteUser(userId);
+export const deleteUser = async (userId, context) => {
+  const user = context
+    ? await withAuditTransaction(context, "Delete", "Users",
+      (db) => userModel.deleteUser(userId, db),
+      (deleted) => `Deleted user account: ${deleted.username}`)
+    : await userModel.deleteUser(userId);
 
   if (user?.profile_image) {
     await removeUserAvatar(user.profile_image);
@@ -37,10 +42,10 @@ export const createUser = async ({
   canAccessServices,
   canAccessPolicies,
   canAccessCategories,
-}) => {
+}, context) => {
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const user = await userModel.insertUser({
+  const fields = {
     firstName,
     lastName,
     username,
@@ -50,7 +55,12 @@ export const createUser = async ({
     ...(role === "admin"
       ? allPermissions
       : { canAccessServices, canAccessPolicies, canAccessCategories }),
-  });
+  };
+  const user = context
+    ? await withAuditTransaction(context, "Add", "Users",
+      (db) => userModel.insertUser(fields, db),
+      (created) => `Created user account: ${created.username}`)
+    : await userModel.insertUser(fields);
 
   return formatUserAvatar(user);
 };
@@ -71,7 +81,7 @@ export const updateUser = async ({
   canAccessServices,
   canAccessPolicies,
   canAccessCategories,
-}) => {
+}, context) => {
   const passwordHash =
     password === undefined ? undefined : await bcrypt.hash(password, 12);
 
@@ -82,7 +92,7 @@ export const updateUser = async ({
   let user;
 
   try {
-    user = await userModel.updateUser({
+    const fields = {
       userId,
       firstName,
       lastName,
@@ -94,7 +104,24 @@ export const updateUser = async ({
       ...(role === "admin"
         ? allPermissions
         : { canAccessServices, canAccessPolicies, canAccessCategories }),
-    });
+    };
+    user = context
+      ? await withAuditTransaction(context, "Edit", "Users",
+        (db) => userModel.updateUser(fields, db),
+        (updated) => {
+          const changes = [];
+          if (isActive !== undefined && updated.previous_active !== isActive) changes.push(isActive ? "Reactivated" : "Deactivated");
+          if (role !== undefined && updated.previous_role !== role) changes.push("Changed role");
+          if (
+            (canAccessServices !== undefined && updated.previous_services !== canAccessServices) ||
+            (canAccessPolicies !== undefined && updated.previous_policies !== canAccessPolicies) ||
+            (canAccessCategories !== undefined && updated.previous_categories !== canAccessCategories)
+          ) changes.push("Changed permissions");
+          return changes.length
+            ? `${changes.join("; ")} for user: ${updated.username}`
+            : `Updated user account: ${updated.username}`;
+        })
+      : await userModel.updateUser(fields);
   } catch (error) {
     if (profileImage) await removeUserAvatar(profileImage);
 
@@ -113,5 +140,14 @@ export const updateUser = async ({
     }
   }
 
+  if (user && Object.hasOwn(user, "previous_id")) {
+    const {
+      previous_id: _previousId, previous_role: _previousRole,
+      previous_active: _previousActive, previous_services: _previousServices,
+      previous_policies: _previousPolicies, previous_categories: _previousCategories,
+      ...result
+    } = user;
+    user = result;
+  }
   return formatUserAvatar(user);
 };

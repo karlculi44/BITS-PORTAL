@@ -59,8 +59,8 @@ export const insertPolicy = async ({
   description,
   file,
   category_id,
-}) => {
-  const result = await pool.query(
+}, db = pool) => {
+  const result = await db.query(
     `INSERT INTO policies (title, description, file, category_id)
     SELECT $1, $2, $3, category.id
     FROM categories AS category
@@ -74,7 +74,7 @@ export const insertPolicy = async ({
   return result.rows[0];
 };
 
-export const updatePolicy = async (policyId, policy) => {
+export const updatePolicy = async (policyId, policy, db = pool) => {
   const updates = [];
   const values = [];
   let categoryIdIndex;
@@ -105,7 +105,7 @@ export const updatePolicy = async (policyId, policy) => {
   const policyIdIndex = values.length;
   const ctes = [
     `existing_policy AS MATERIALIZED (
-      SELECT id, file
+      SELECT id, file, category_id
       FROM policies
       WHERE id = $${policyIdIndex}
       FOR UPDATE
@@ -137,15 +137,16 @@ export const updatePolicy = async (policyId, policy) => {
         policies.file,
         policies.created_at,
         policies.updated_at,
-        existing_policy.file AS previous_file`;
+        existing_policy.file AS previous_file,
+        existing_policy.category_id AS previous_category_id`;
 
-  const result = await pool.query(query, values);
+  const result = await db.query(query, values);
 
   return result.rows[0];
 };
 
-export const deletePolicy = async (policyId) => {
-  const result = await pool.query(
+export const deletePolicy = async (policyId, db = pool) => {
+  const result = await db.query(
     `DELETE FROM policies
     WHERE id = $1
     RETURNING id, category_id, title, description, file, created_at, updated_at`,

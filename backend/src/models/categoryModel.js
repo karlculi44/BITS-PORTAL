@@ -46,8 +46,8 @@ export const getCategoryByName = async (name, type, excludeCategoryId) => {
   return result.rows[0];
 };
 
-export const getCategoryById = async (categoryId) => {
-  const result = await pool.query(
+export const getCategoryById = async (categoryId, db = pool) => {
+  const result = await db.query(
     `SELECT id, name, type, is_active, is_default
     FROM categories
     WHERE id = $1`,
@@ -68,8 +68,8 @@ export const searchCategoriesByName = async (name) => {
   return result.rows;
 };
 
-export const insertCategory = async (name, type) => {
-  const result = await pool.query(
+export const insertCategory = async (name, type, db = pool) => {
+  const result = await db.query(
     `INSERT INTO categories (name, type)
     VALUES ($1, $2)
     RETURNING id, name, type, is_active, is_default`,
@@ -84,7 +84,7 @@ export const updateCategory = async ({
   name,
   type,
   isActive,
-}) => {
+}, db = pool) => {
   const updates = [];
   const values = [];
 
@@ -100,26 +100,34 @@ export const updateCategory = async ({
 
   values.push(categoryId);
 
-  const result = await pool.query(
-    `UPDATE categories
-    SET ${updates.join(", ")}
-    WHERE id = $${values.length}
-    RETURNING id, name, type, is_active, is_default`,
+  const result = await db.query(
+    db === pool
+      ? `UPDATE categories
+        SET ${updates.join(", ")}
+        WHERE id = $${values.length}
+        RETURNING id, name, type, is_active, is_default`
+      : `WITH previous AS MATERIALIZED (
+          SELECT id, name FROM categories WHERE id = $${values.length} FOR UPDATE
+        )
+        UPDATE categories SET ${updates.join(", ")}
+        FROM previous WHERE categories.id = previous.id
+        RETURNING categories.id, categories.name, categories.type, categories.is_active,
+          categories.is_default, previous.name AS previous_name`,
     values,
   );
 
   return result.rows[0];
 };
 
-export const setDefaultCategory = async (categoryId, isDefault) => {
-  const client = await pool.connect();
+export const setDefaultCategory = async (categoryId, isDefault, transactionClient) => {
+  const client = transactionClient || await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    if (!transactionClient) await client.query("BEGIN");
 
     // Lock every service category so concurrent default changes serialize.
     const locked = await client.query(
-      `SELECT id, type
+      `SELECT id, type, is_default
       FROM categories
       WHERE type = 'service' OR id = $1
       ORDER BY id
@@ -129,12 +137,12 @@ export const setDefaultCategory = async (categoryId, isDefault) => {
     const category = locked.rows.find((row) => row.id === categoryId);
 
     if (!category) {
-      await client.query("ROLLBACK");
+      if (!transactionClient) await client.query("ROLLBACK");
       return undefined;
     }
 
     if (category.type !== "service") {
-      await client.query("ROLLBACK");
+      if (!transactionClient) await client.query("ROLLBACK");
       const error = new Error("Only service categories can be default");
       error.code = "NOT_SERVICE_CATEGORY";
       throw error;
@@ -156,20 +164,22 @@ export const setDefaultCategory = async (categoryId, isDefault) => {
       RETURNING id, name, type, is_active, is_default`,
       [isDefault, categoryId],
     );
-    await client.query("COMMIT");
+    if (!transactionClient) await client.query("COMMIT");
 
-    return result.rows[0];
+    return transactionClient
+      ? { ...result.rows[0], previous_default: category.is_default }
+      : result.rows[0];
   } catch (error) {
-    if (error.code !== "NOT_SERVICE_CATEGORY") {
+    if (!transactionClient && error.code !== "NOT_SERVICE_CATEGORY") {
       await client.query("ROLLBACK");
     }
     throw error;
   } finally {
-    client.release();
+    if (!transactionClient) client.release();
   }
 };
-export const deleteCategory = async (categoryId) => {
-  const result = await pool.query(
+export const deleteCategory = async (categoryId, db = pool) => {
+  const result = await db.query(
     `DELETE FROM categories
     WHERE id = $1
     RETURNING id, name, type, is_active, is_default`,

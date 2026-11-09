@@ -25,8 +25,8 @@ export const insertUser = async ({
   canAccessServices = false,
   canAccessPolicies = false,
   canAccessCategories = false,
-}) => {
-  const result = await pool.query(
+}, db = pool) => {
+  const result = await db.query(
     `INSERT INTO users (
       first_name,
       last_name,
@@ -93,8 +93,8 @@ export const getAllUsers = async () => {
   return result.rows;
 };
 
-export const deleteUser = async (userId) => {
-  const result = await pool.query(
+export const deleteUser = async (userId, db = pool) => {
+  const result = await db.query(
     `DELETE FROM users
     WHERE id = $1
     RETURNING${userColumns},
@@ -118,7 +118,7 @@ export const updateUser = async ({
   canAccessServices,
   canAccessPolicies,
   canAccessCategories,
-}) => {
+}, db = pool) => {
   const updates = [];
   const values = [];
 
@@ -144,14 +144,23 @@ export const updateUser = async ({
 
   values.push(userId);
 
-  const result = await pool.query(
-    `UPDATE users
+  const result = await db.query(
+    db === pool ? `UPDATE users
     SET ${updates.join(", ")},
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $${values.length}
     RETURNING${userColumns},
       created_at,
-      updated_at`,
+      updated_at` : `WITH previous AS MATERIALIZED (
+      SELECT id AS previous_id, role AS previous_role, is_active AS previous_active,
+        can_access_services AS previous_services,
+        can_access_policies AS previous_policies,
+        can_access_categories AS previous_categories
+      FROM users WHERE id = $${values.length} FOR UPDATE
+    )
+    UPDATE users SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP
+    FROM previous WHERE users.id = previous.previous_id
+    RETURNING${userColumns}, created_at, updated_at, previous.*`,
     values,
   );
 

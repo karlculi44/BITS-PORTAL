@@ -1,6 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import * as categoryService from "../services/categoryService.js";
+import { requestAuditContext } from "../services/auditLogService.js";
 
 export const createCategory = asyncHandler(async (req, res) => {
   const { name, type } = req.body;
@@ -18,6 +19,7 @@ export const createCategory = asyncHandler(async (req, res) => {
   const category = await categoryService.createCategory(
     name,
     type,
+    requestAuditContext(req),
   );
 
   res.status(201).json(category);
@@ -51,7 +53,7 @@ export const updateCategory = asyncHandler(async (req, res) => {
   const category = await categoryService.updateCategory({
     categoryId: id,
     ...req.body,
-  });
+  }, requestAuditContext(req));
 
   if (!category) {
     throw new AppError("Category not found", 404);
@@ -70,6 +72,7 @@ export const setDefaultCategory = asyncHandler(async (req, res) => {
   const category = await categoryService.setDefaultCategory(
     Number(id),
     req.body.isDefault,
+    requestAuditContext(req),
   );
 
   if (!category) {
@@ -86,7 +89,7 @@ export const deleteCategory = asyncHandler(async (req, res) => {
     throw new AppError("Invalid category ID", 400);
   }
 
-  const category = await categoryService.deleteCategory(id);
+  const category = await categoryService.deleteCategory(id, requestAuditContext(req));
 
   if (!category) {
     throw new AppError("Category not found", 404);

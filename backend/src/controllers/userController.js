@@ -2,6 +2,7 @@ import * as userService from "../services/userService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { getUserAvatarPath, removeUserAvatar } from "../utils/userAvatar.js";
+import { requestAuditContext } from "../services/auditLogService.js";
 
 // Deletes the just-uploaded profile picture if the request fails afterwards.
 const withUploadCleanup = (handler) =>
@@ -51,7 +52,7 @@ export const getUserAvatarController = (req, res, next) => {
 };
 
 export const deleteUserController = asyncHandler(async (req, res) => {
-  const user = await userService.deleteUser(req.params.id);
+  const user = await userService.deleteUser(req.params.id, requestAuditContext(req));
 
   if (!user) {
     throw new AppError("User not found", 404);
@@ -87,7 +88,7 @@ export const createUserController = withUploadCleanup(async (req, res) => {
     ...req.body,
     role: normalizedRole,
     profileImage: req.file?.filename,
-  });
+  }, requestAuditContext(req));
 
   if (!user) {
     throw new AppError("Failed to create user", 400);
@@ -132,7 +133,7 @@ export const updateUserController = withUploadCleanup(async (req, res) => {
     canAccessServices,
     canAccessPolicies,
     canAccessCategories,
-  });
+  }, requestAuditContext(req));
 
   if (!user) {
     throw new AppError("User not found", 404);

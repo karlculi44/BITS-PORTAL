@@ -2,6 +2,7 @@ import * as policyService from "../services/policyService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { getPolicyDocumentPath } from "../utils/policyDocument.js";
+import { requestAuditContext } from "../services/auditLogService.js";
 
 export const getAllPoliciesController = asyncHandler(async (req, res) => {
   const policies = await policyService.getAllPolicies();
@@ -30,7 +31,7 @@ export const getPolicyDocumentController = asyncHandler(async (req, res, next) =
 });
 
 export const createPolicyController = asyncHandler(async (req, res) => {
-  const policy = await policyService.createPolicy(req.body);
+  const policy = await policyService.createPolicy(req.body, requestAuditContext(req));
 
   res.status(201).json({
     message: "Policy created successfully",
@@ -41,7 +42,7 @@ export const createPolicyController = asyncHandler(async (req, res) => {
 export const updatePolicyController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const policy = await policyService.updatePolicy(id, req.body);
+  const policy = await policyService.updatePolicy(id, req.body, requestAuditContext(req));
 
   res.status(200).json({
     message: "Policy updated successfully",
@@ -52,7 +53,7 @@ export const updatePolicyController = asyncHandler(async (req, res) => {
 export const deletePolicyController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const policy = await policyService.deletePolicy(id);
+  const policy = await policyService.deletePolicy(id, requestAuditContext(req));
 
   res.status(200).json({
     message: "Policy deleted successfully",

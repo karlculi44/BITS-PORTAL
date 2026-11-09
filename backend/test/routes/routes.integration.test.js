@@ -63,6 +63,7 @@ describe("routes integration", () => {
 
   afterEach(async () => {
     for (const userId of createdUserIds) {
+      await testPool.query("DELETE FROM logs WHERE user_id = $1", [userId]);
       await testPool.query("DELETE FROM users WHERE id = $1", [userId]);
     }
     createdUserIds.clear();

@@ -2,6 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 
+vi.mock("../../src/services/auditLogService.js", () => ({
+  requestAuditContext: () => ({ userId: null, ipAddress: null }),
+  recordAuditEvent: vi.fn(),
+}));
+
 vi.mock("../../src/services/authService.js", () => ({
   loginUser: vi.fn(),
   getSessionUser: vi.fn(),
@@ -81,7 +86,7 @@ describe("POST /api/auth/login", () => {
       const response = await request(app).post("/api/auth/logout").set("Cookie", "refreshToken=refresh-token");
 
       expect(response.status).toBe(200);
-      expect(authService.logoutUser).toHaveBeenCalledWith("refresh-token");
+      expect(authService.logoutUser).toHaveBeenCalledWith("refresh-token", { userId: null, ipAddress: null }, undefined);
       expect(response.headers["set-cookie"]).toEqual(expect.arrayContaining([
         expect.stringMatching(/^accessToken=;.*Expires=Thu, 01 Jan 1970/),
         expect.stringMatching(/^refreshToken=;.*Expires=Thu, 01 Jan 1970/),

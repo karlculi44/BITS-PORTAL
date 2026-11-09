@@ -45,6 +45,19 @@ CREATE TABLE public.categories (
 CREATE UNIQUE INDEX idx_categories_one_default_per_type
   ON public.categories (type) WHERE is_default = true;
 
+CREATE TABLE public.services (
+  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title character varying(255) NOT NULL,
+  url text NOT NULL,
+  image text,
+  sort_order integer NOT NULL DEFAULT 0,
+  category_id integer NOT NULL REFERENCES public.categories(id) ON DELETE RESTRICT,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  description text,
+  is_default boolean NOT NULL DEFAULT false
+);
+
 CREATE TABLE public.policies (
   id integer GENERATED ALWAYS AS IDENTITY,
   category_id integer NOT NULL,
@@ -60,3 +73,17 @@ CREATE TABLE public.policies (
 
 CREATE INDEX idx_refresh_tokens_user_id
   ON public.refresh_tokens USING btree (user_id);
+
+CREATE TABLE public.logs (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id integer REFERENCES public.users(id) ON DELETE SET NULL,
+  username character varying(50),
+  action character varying(50) NOT NULL,
+  module character varying(50) NOT NULL,
+  details text,
+  ip_address inet,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_logs_created_at ON public.logs (created_at DESC);
+CREATE INDEX idx_logs_user_id ON public.logs (user_id);

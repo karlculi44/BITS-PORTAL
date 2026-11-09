@@ -6,6 +6,7 @@ import Services from "./pages/Services";
 import Policies from "./pages/Policies";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
+import AuditLogs from "./pages/AuditLogs";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -72,7 +73,7 @@ function App() {
                 path="/activity-logs"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
-                    <Placeholder name="Activity Logs" />
+                    <AuditLogs />
                   </ProtectedRoute>
                 }
               />

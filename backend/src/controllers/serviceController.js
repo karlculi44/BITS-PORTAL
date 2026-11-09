@@ -2,6 +2,7 @@ import * as officeOfferingService from "../services/officeOfferingService.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { getServiceLogoPath } from "../utils/serviceLogo.js";
+import { requestAuditContext } from "../services/auditLogService.js";
 
 export const getAllServicesController = asyncHandler(async (req, res) => {
   const services = await officeOfferingService.getAllServices();
@@ -28,7 +29,7 @@ export const getServiceLogoController = (req, res, next) => {
 };
 
 export const createServiceController = asyncHandler(async (req, res) => {
-  const service = await officeOfferingService.createService(req.body, req.file);
+  const service = await officeOfferingService.createService(req.body, req.file, requestAuditContext(req));
 
   res.status(201).json({
     message: "Service created successfully",
@@ -54,6 +55,7 @@ export const updateServiceController = asyncHandler(async (req, res) => {
     id,
     req.body,
     req.file,
+    requestAuditContext(req),
   );
 
   res.status(200).json({
@@ -65,7 +67,7 @@ export const updateServiceController = asyncHandler(async (req, res) => {
 export const setDefaultServiceController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const service = await officeOfferingService.setDefaultService(id);
+  const service = await officeOfferingService.setDefaultService(id, requestAuditContext(req));
 
   res.status(200).json({
     message: "Service set as default successfully",
@@ -76,7 +78,7 @@ export const setDefaultServiceController = asyncHandler(async (req, res) => {
 export const deleteServiceController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const service = await officeOfferingService.deleteService(id);
+  const service = await officeOfferingService.deleteService(id, requestAuditContext(req));
 
   res.status(200).json({
     message: "Service deleted successfully",

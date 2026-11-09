@@ -3,6 +3,11 @@ import { access, mkdir, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../src/services/auditLogService.js", () => ({
+  requestAuditContext: () => ({ userId: "1", ipAddress: null }),
+  withAuditTransaction: (_context, _action, _module, operation) => operation(),
+}));
+
 vi.mock("../../src/config/db.js", () => ({
   default: {
     query: vi.fn(),

@@ -1,7 +1,7 @@
 import pool from "../config/db.js";
 
-export const insertRefreshToken = async ({ userId, tokenHash, expiresAt }) => {
-  await pool.query(
+export const insertRefreshToken = async ({ userId, tokenHash, expiresAt }, db = pool) => {
+  await db.query(
     `INSERT INTO refresh_tokens (
       user_id,
       token_hash,
@@ -12,12 +12,14 @@ export const insertRefreshToken = async ({ userId, tokenHash, expiresAt }) => {
   );
 };
 
-export const revokeRefreshToken = async (tokenHash) => {
-  await pool.query(
+export const revokeRefreshToken = async (tokenHash, db = pool) => {
+  const result = await db.query(
     `UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP
-    WHERE token_hash = $1 AND revoked_at IS NULL`,
+    WHERE token_hash = $1 AND revoked_at IS NULL
+    RETURNING user_id`,
     [tokenHash],
   );
+  return result.rows[0];
 };
 
 export const rotateRefreshToken = async ({
