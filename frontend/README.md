@@ -24,6 +24,14 @@ requests remain protected. The admin Services page uses the same service list;
 admins can create and edit services using `POST /api/services` and
 `PATCH /api/services/:id`.
 
+The public navbar shows Login when signed out and a dashboard link with the
+user's profile picture when signed in. It falls back to a profile icon if the
+picture is unavailable, and hides the action while the session is restored.
+
+The landing page's identity card uses a spring-based cursor tilt and glare,
+with a periodic glass reflection. These effects are disabled when the visitor
+prefers reduced motion, and the tilt does not capture touch gestures.
+
 The backend accepts an image string but has no file-upload mechanism, so the
 admin modal accepts an image URL instead. Delete remains a visual placeholder
 and does not send requests.

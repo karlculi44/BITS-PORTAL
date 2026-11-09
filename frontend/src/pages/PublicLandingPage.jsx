@@ -3,13 +3,17 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  CircleUserRound,
   ExternalLink,
   ImageOff,
   Search,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Tilt } from "@gfazioli/react-tilt";
+import "@gfazioli/react-tilt/styles.css";
 import ThemeToggle from "../components/ThemeToggle";
+import { useAuth } from "../hooks/useAuth";
 import bayawanCityLogo from "../assets/images/bayawan_city_logo.png";
 import bitsLogo from "../assets/images/bits.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
@@ -161,7 +165,24 @@ function ServiceCard({ service, categoryName, className = "" }) {
   );
 }
 
+function ProfileImage({ user }) {
+  const [failedImage, setFailedImage] = useState("");
+  const image = user.profile_image ? getServiceImageUrl(user.profile_image) : "";
+
+  return image && image !== failedImage ? (
+    <img
+      src={image}
+      alt=""
+      onError={() => setFailedImage(image)}
+      className="public-profile-image"
+    />
+  ) : (
+    <CircleUserRound size={22} aria-hidden="true" />
+  );
+}
+
 function PublicLandingPage() {
+  const { user, loading: authLoading } = useAuth();
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -463,7 +484,24 @@ function PublicLandingPage() {
               BITS Organization
             </span>
           </nav>
-          <ThemeToggle />
+          <div className="public-header-actions">
+            {!authLoading &&
+              (user ? (
+                <Link
+                  to="/dashboard"
+                  className="public-profile-link"
+                  aria-label="Go to dashboard"
+                  title="Go to dashboard"
+                >
+                  <ProfileImage user={user} />
+                </Link>
+              ) : (
+                <Link to="/login" className="public-nav-link public-login-link">
+                  Login
+                </Link>
+              ))}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -488,28 +526,56 @@ function PublicLandingPage() {
                 <ArrowRight size={17} aria-hidden="true" />
               </a>
             </div>
-            <div className="public-identity-card">
-              <span className="public-identity-label">
-                A city moving forward
-              </span>
-              <div className="public-identity-logos">
-                <div className="public-identity-logo">
-                  <img src={bayawanCityLogo} alt="Bayawan City seal" />
-                  <span>Bayawan City</span>
+            <div className="public-identity-tilt">
+              <Tilt
+                threshold={12}
+                maxRotation={6}
+                hoverScale={1.01}
+                springEffect
+                springStiffness={170}
+                springDamping={26}
+                glareEffect
+                glareColor="rgba(255, 255, 255, 0.4)"
+                glareMaxOpacity={0.2}
+                glareSize={25}
+                radius="1.5rem"
+                touchEnabled={false}
+              >
+                <div className="public-identity-card">
+                  <div className="public-identity-kicker">
+                    <span aria-hidden="true" />
+                    Bayawan City &middot; Digital services
+                  </div>
+                  <h2 className="public-identity-label">
+                    A city moving forward
+                  </h2>
+                  <p className="public-identity-description">
+                    Connecting our community to accessible public services.
+                  </p>
+                  <div className="public-identity-logos">
+                    <div className="public-identity-logo">
+                      <img src={bayawanCityLogo} alt="Bayawan City seal" />
+                      <span>Bayawan City</span>
+                    </div>
+                    <span
+                      className="public-identity-divider"
+                      aria-hidden="true"
+                    />
+                    <div className="public-identity-logo">
+                      <img
+                        src={informationTechnologyLogo}
+                        alt="Information Technology Section logo"
+                      />
+                      <span>Information Technology Section</span>
+                    </div>
+                  </div>
+                  <div className="public-identity-footer" aria-hidden="true">
+                    <span>Connected community</span>
+                    <span className="public-identity-footer-line" />
+                    <ArrowRight size={16} />
+                  </div>
                 </div>
-                <span className="public-identity-divider" aria-hidden="true" />
-                <div className="public-identity-logo">
-                  <img
-                    src={informationTechnologyLogo}
-                    alt="Information Technology Section logo"
-                  />
-                  <span>Information Technology Section</span>
-                </div>
-              </div>
-              <p>
-                Connecting our community to responsive, accessible public
-                services.
-              </p>
+              </Tilt>
             </div>
           </div>
           <div
