@@ -13,12 +13,45 @@ export const getCategoryById = async (categoryId) => {
 
 export const getAllPolicies = async () => {
   const result = await pool.query(
-    `SELECT id, category_id, title, description, file, created_at, updated_at
+    `SELECT
+      policies.id,
+      policies.category_id,
+      categories.name AS category_name,
+      policies.title,
+      policies.description,
+      policies.file,
+      policies.created_at,
+      policies.updated_at
     FROM policies
-    ORDER BY id ASC`,
+    INNER JOIN categories ON categories.id = policies.category_id
+    ORDER BY policies.id ASC`,
   );
 
   return result.rows;
+};
+
+export const getPolicyById = async (policyId) => {
+  const result = await pool.query(
+    `SELECT id, category_id, title, description, file
+    FROM policies
+    WHERE id = $1`,
+    [policyId],
+  );
+
+  return result.rows[0];
+};
+
+export const isPolicyDocumentReferenced = async (file) => {
+  const result = await pool.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM policies
+      WHERE file = $1
+    ) AS referenced`,
+    [file],
+  );
+
+  return result.rows[0].referenced;
 };
 
 export const insertPolicy = async ({
@@ -69,30 +102,33 @@ export const updatePolicy = async (policyId, policy) => {
 
   updates.push("updated_at = CURRENT_TIMESTAMP");
   values.push(policyId);
+  const policyIdIndex = values.length;
+  const ctes = [
+    `existing_policy AS MATERIALIZED (
+      SELECT id, file
+      FROM policies
+      WHERE id = $${policyIdIndex}
+      FOR UPDATE
+    )`,
+  ];
+  let from = "existing_policy";
 
-  const query = categoryIdIndex === undefined
-    ? `UPDATE policies
-      SET ${updates.join(", ")}
-      WHERE id = $${values.length}
-      RETURNING
-        policies.id,
-        policies.category_id,
-        policies.title,
-        policies.description,
-        policies.file,
-        policies.created_at,
-        policies.updated_at`
-    : `WITH policy_category AS MATERIALIZED (
+  if (categoryIdIndex !== undefined) {
+    ctes.push(`policy_category AS MATERIALIZED (
         SELECT id
         FROM categories
         WHERE id = $${categoryIdIndex}
           AND type = 'policy'
         FOR SHARE
-      )
+      )`);
+    from += ", policy_category";
+  }
+
+  const query = `WITH ${ctes.join(", ")}
       UPDATE policies
       SET ${updates.join(", ")}
-      FROM policy_category
-      WHERE policies.id = $${values.length}
+      FROM ${from}
+      WHERE policies.id = existing_policy.id
       RETURNING
         policies.id,
         policies.category_id,
@@ -100,7 +136,8 @@ export const updatePolicy = async (policyId, policy) => {
         policies.description,
         policies.file,
         policies.created_at,
-        policies.updated_at`;
+        policies.updated_at,
+        existing_policy.file AS previous_file`;
 
   const result = await pool.query(query, values);
 

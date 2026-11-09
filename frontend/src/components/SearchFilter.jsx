@@ -33,7 +33,7 @@ function SearchFilter({
           aria-label={searchLabel}
           {...(searchTooltip && tooltip(searchTooltip))}
           disabled={disabled}
-          className="w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-md border border-slate-300 bg-slate-50 py-2 pl-10 pr-10 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {searchValue && (
           <button
@@ -54,7 +54,7 @@ function SearchFilter({
           aria-label={filterLabel}
           {...(filterTooltip && tooltip(filterTooltip))}
           disabled={disabled}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-56"
+          className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-56"
         >
           <option value="">{filterPlaceholder}</option>
           {filterOptions.map((option) => (

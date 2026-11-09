@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/config/db.js", () => ({
@@ -10,6 +13,10 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import app from "../../src/app.js";
 import pool from "../../src/config/db.js";
+import {
+  policyDocumentDirectory,
+  removePolicyDocument,
+} from "../../src/utils/policyDocument.js";
 
 const accessSecret = "test-access-secret";
 
@@ -32,15 +39,24 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+const uploadPolicy = (categoryId = 11, title = validInput.title) =>
+  request(app)
+    .post("/api/policies")
+    .set("Cookie", accessCookie("admin"))
+    .field("title", title)
+    .field("category_id", String(categoryId))
+    .attach("document", Buffer.from("%PDF-1.7\npolicy"), {
+      filename: "policy.pdf",
+      contentType: "application/pdf",
+    });
+
 describe("GET /api/policies", () => {
   beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
     pool.query.mockReset();
   });
 
-  it.each([
-    ["public", undefined],
-    ["admin", "admin"],
-  ])("returns policies to %s callers", async (caller, role) => {
+  it("returns policies to authorized administrators", async () => {
     const policies = [
       {
         id: 5,
@@ -52,12 +68,9 @@ describe("GET /api/policies", () => {
     ];
     pool.query.mockResolvedValueOnce({ rows: policies });
 
-    let response = request(app).get("/api/policies");
-    if (role) {
-      response = response.set("Cookie", accessCookie(role));
-    }
-
-    const result = await response;
+    const result = await request(app)
+      .get("/api/policies")
+      .set("Cookie", accessCookie("admin"));
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual(policies);
@@ -68,7 +81,9 @@ describe("GET /api/policies", () => {
   it("returns an empty array when there are no policies", async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    const response = await request(app).get("/api/policies");
+    const response = await request(app)
+      .get("/api/policies")
+      .set("Cookie", accessCookie("admin"));
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([]);
@@ -77,10 +92,78 @@ describe("GET /api/policies", () => {
   it("uses the existing error response for database failures", async () => {
     pool.query.mockRejectedValueOnce(new Error("Database unavailable"));
 
-    const response = await request(app).get("/api/policies");
+    const response = await request(app)
+      .get("/api/policies")
+      .set("Cookie", accessCookie("admin"));
 
     expect(response.status).toBe(500);
     expect(response.body.message).toBe("Internal Server Error");
+  });
+
+  it("requires policy access to list policies", async () => {
+    const response = await request(app).get("/api/policies");
+    expect(response.status).toBe(401);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/policies/:id/document", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("serves a managed policy PDF inline to authorized administrators", async () => {
+    const filename = `${randomUUID()}.pdf`;
+    await mkdir(policyDocumentDirectory, { recursive: true });
+    await writeFile(
+      path.join(policyDocumentDirectory, filename),
+      Buffer.from("%PDF-1.7\nmanaged policy"),
+    );
+    pool.query.mockResolvedValueOnce({
+      rows: [{ id: 5, file: filename }],
+    });
+
+    try {
+      const response = await request(app)
+        .get("/api/policies/5/document")
+        .set("Cookie", accessCookie("admin"));
+
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toMatch(/^application\/pdf/);
+      expect(response.headers["content-disposition"]).toBe("inline");
+      expect(response.body.toString("utf8")).toContain("%PDF-1.7");
+      expect(pool.query.mock.calls[0][1]).toEqual(["5"]);
+    } finally {
+      await removePolicyDocument(filename);
+    }
+  });
+
+  it("does not serve paths that are not managed PDF filenames", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{ id: 5, file: "../../private.pdf" }],
+    });
+
+    const response = await request(app)
+      .get("/api/policies/5/document")
+      .set("Cookie", accessCookie("admin"));
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Policy document not found");
+  });
+
+  it("requires policy access to retrieve a document", async () => {
+    const unauthenticated = await request(app).get(
+      "/api/policies/5/document",
+    );
+    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
+    const unauthorized = await request(app)
+      .get("/api/policies/5/document")
+      .set("Cookie", accessCookie("staff"));
+
+    expect(unauthenticated.status).toBe(401);
+    expect(unauthorized.status).toBe(403);
+    expect(pool.query).toHaveBeenCalledOnce();
   });
 });
 
@@ -93,24 +176,25 @@ describe("POST /api/policies", () => {
   it("creates a policy and permits an omitted nullable description", async () => {
     const policy = {
       id: 5,
-      ...validInput,
+      title: validInput.title,
+      category_id: validInput.category_id,
       description: null,
       created_at: "2026-01-01T00:00:00.000Z",
       updated_at: "2026-01-01T00:00:00.000Z",
     };
     pool.query
       .mockResolvedValueOnce({ rows: [{ id: 11, type: "policy" }] })
-      .mockResolvedValueOnce({ rows: [policy] });
+      .mockImplementationOnce((_query, values) =>
+        Promise.resolve({ rows: [{ ...policy, file: values[2] }] }),
+      );
 
-    const response = await request(app)
-      .post("/api/policies")
-      .set("Cookie", accessCookie("admin"))
-      .send(validInput);
+    const response = await uploadPolicy();
+    const uploadedFile = pool.query.mock.calls[1][1][2];
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
       message: "Policy created successfully",
-      data: policy,
+      data: { ...policy, file: uploadedFile },
     });
     expect(pool.query).toHaveBeenCalledTimes(2);
     expect(pool.query.mock.calls[0][1]).toEqual([11]);
@@ -120,9 +204,11 @@ describe("POST /api/policies", () => {
     expect(pool.query.mock.calls[1][1]).toEqual([
       validInput.title,
       null,
-      validInput.file,
+      uploadedFile,
       validInput.category_id,
     ]);
+    expect(uploadedFile).toMatch(/^[0-9a-f-]{36}\.pdf$/);
+    await removePolicyDocument(uploadedFile);
   });
 
   it.each([
@@ -148,25 +234,44 @@ describe("POST /api/policies", () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 
+  it("rejects non-PDF content and uploads without a PDF signature", async () => {
+    const wrongMime = await request(app)
+      .post("/api/policies")
+      .set("Cookie", accessCookie("admin"))
+      .field("title", validInput.title)
+      .field("category_id", String(validInput.category_id))
+      .attach("document", Buffer.from("not pdf"), {
+        filename: "policy.txt",
+        contentType: "text/plain",
+      });
+    const invalidPdf = await request(app)
+      .post("/api/policies")
+      .set("Cookie", accessCookie("admin"))
+      .field("title", validInput.title)
+      .field("category_id", String(validInput.category_id))
+      .attach("document", Buffer.from("not a PDF"), {
+        filename: "policy.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(wrongMime.status).toBe(400);
+    expect(invalidPdf.status).toBe(400);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
   it("rejects missing categories and categories with service type", async () => {
     pool.query
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ id: 10, type: "service" }] });
 
-    const missingCategory = await request(app)
-      .post("/api/policies")
-      .set("Cookie", accessCookie("admin"))
-      .send(validInput);
+    const missingCategory = await uploadPolicy(99);
     expect(missingCategory.status).toBe(404);
     expect(missingCategory.body.message).toBe("Category not found");
     expect(pool.query).toHaveBeenCalledTimes(1);
 
     pool.query.mockReset();
     pool.query.mockResolvedValueOnce({ rows: [{ id: 10, type: "service" }] });
-    const serviceCategory = await request(app)
-      .post("/api/policies")
-      .set("Cookie", accessCookie("admin"))
-      .send({ ...validInput, category_id: 10 });
+    const serviceCategory = await uploadPolicy(10);
 
     expect(serviceCategory.status).toBe(400);
     expect(serviceCategory.body.message).toBe(
@@ -180,10 +285,7 @@ describe("POST /api/policies", () => {
       .mockResolvedValueOnce({ rows: [{ id: 11, type: "policy" }] })
       .mockRejectedValueOnce({ code: "23503" });
 
-    const response = await request(app)
-      .post("/api/policies")
-      .set("Cookie", accessCookie("admin"))
-      .send(validInput);
+    const response = await uploadPolicy();
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe("Category not found");

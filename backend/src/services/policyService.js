@@ -1,27 +1,59 @@
 import * as policyModel from "../models/policyModel.js";
 import AppError from "../utils/AppError.js";
+import {
+  isManagedPolicyDocument,
+  removePolicyDocument,
+} from "../utils/policyDocument.js";
+
+const removeUnusedPolicyDocument = async (file) => {
+  if (
+    isManagedPolicyDocument(file) &&
+    !(await policyModel.isPolicyDocumentReferenced(file))
+  ) {
+    await removePolicyDocument(file);
+  }
+};
+
+const removeUploadedPolicyDocument = async (file, cause) => {
+  if (!isManagedPolicyDocument(file)) return;
+
+  try {
+    await removePolicyDocument(file);
+  } catch (cleanupError) {
+    cleanupError.cause = cause;
+    throw cleanupError;
+  }
+};
 
 export const getAllPolicies = async () => {
   return await policyModel.getAllPolicies();
 };
 
+export const getPolicyById = async (policyId) => {
+  const policy = await policyModel.getPolicyById(policyId);
+
+  if (!policy) {
+    throw new AppError("Policy not found", 404);
+  }
+
+  return policy;
+};
+
 export const createPolicy = async (policy) => {
-  const category = await policyModel.getCategoryById(policy.category_id);
-
-  if (!category) {
-    throw new AppError("Category not found", 404);
-  }
-
-  if (category.type !== "policy") {
-    throw new AppError("Category must be a policy category", 400);
-  }
-
   try {
+    const category = await policyModel.getCategoryById(policy.category_id);
+
+    if (!category) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (category.type !== "policy") {
+      throw new AppError("Category must be a policy category", 400);
+    }
+
     const createdPolicy = await policyModel.insertPolicy(policy);
 
-    if (createdPolicy) {
-      return createdPolicy;
-    }
+    if (createdPolicy) return createdPolicy;
 
     const currentCategory = await policyModel.getCategoryById(
       policy.category_id,
@@ -37,6 +69,8 @@ export const createPolicy = async (policy) => {
 
     throw new Error("Policy was not created");
   } catch (error) {
+    await removeUploadedPolicyDocument(policy.file, error);
+
     if (error.code === "23503") {
       throw new AppError("Category not found", 404);
     }
@@ -58,12 +92,14 @@ export const updatePolicy = async (policyId, policy) => {
     }
   };
 
-  if (policy.category_id !== undefined) {
-    await validateCategory();
-  }
+  let updatedPolicy;
 
   try {
-    const updatedPolicy = await policyModel.updatePolicy(policyId, policy);
+    if (policy.category_id !== undefined) {
+      await validateCategory();
+    }
+
+    updatedPolicy = await policyModel.updatePolicy(policyId, policy);
 
     if (!updatedPolicy) {
       if (policy.category_id !== undefined) {
@@ -72,15 +108,27 @@ export const updatePolicy = async (policyId, policy) => {
 
       throw new AppError("Policy not found", 404);
     }
-
-    return updatedPolicy;
   } catch (error) {
+    await removeUploadedPolicyDocument(policy.file, error);
+
     if (error.code === "23503") {
       throw new AppError("Category not found", 404);
     }
 
     throw error;
   }
+
+  if (
+    updatedPolicy.previous_file &&
+    updatedPolicy.previous_file !== updatedPolicy.file
+  ) {
+    await removeUnusedPolicyDocument(updatedPolicy.previous_file);
+  }
+
+  if (!Object.hasOwn(updatedPolicy, "previous_file")) return updatedPolicy;
+
+  const { previous_file: _previousFile, ...result } = updatedPolicy;
+  return result;
 };
 
 export const deletePolicy = async (policyId) => {
@@ -89,6 +137,8 @@ export const deletePolicy = async (policyId) => {
   if (!policy) {
     throw new AppError("Policy not found", 404);
   }
+
+  await removeUnusedPolicyDocument(policy.file);
 
   return policy;
 };

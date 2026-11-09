@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
+import Policies from "./pages/Policies";
 import Categories from "./pages/Categories";
 import Users from "./pages/Users";
 import Placeholder from "./pages/Placeholder";
@@ -47,7 +48,7 @@ function App() {
                 path="/policies"
                 element={
                   <ProtectedRoute section="policies">
-                    <Placeholder name="Policies" />
+                    <Policies />
                   </ProtectedRoute>
                 }
               />

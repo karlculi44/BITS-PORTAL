@@ -21,6 +21,7 @@ describe("policyModel integration", () => {
     await client.query(
       `CREATE TEMPORARY TABLE categories (
         id integer PRIMARY KEY,
+        name character varying NOT NULL,
         type character varying NOT NULL
       )`,
     );
@@ -36,7 +37,7 @@ describe("policyModel integration", () => {
       )`,
     );
     await client.query(
-      "INSERT INTO categories (id, type) VALUES (10, 'service'), (11, 'policy')",
+      "INSERT INTO categories (id, name, type) VALUES (10, 'Services', 'service'), (11, 'Policy Category', 'policy')",
     );
     vi.spyOn(modelPool, "query").mockImplementation((...args) =>
       client.query(...args),
@@ -105,6 +106,7 @@ describe("policyModel integration", () => {
     expect(listedPolicies[0]).toMatchObject({
       title: "First Policy",
       category_id: 11,
+      category_name: "Policy Category",
       description: null,
       file: "https://example.com/first-policy.pdf",
     });

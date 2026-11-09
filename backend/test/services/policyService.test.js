@@ -1,7 +1,12 @@
+import { mkdir, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/models/policyModel.js", () => ({
   getAllPolicies: vi.fn(),
+  getPolicyById: vi.fn(),
+  isPolicyDocumentReferenced: vi.fn(),
   getCategoryById: vi.fn(),
   deletePolicy: vi.fn(),
   insertPolicy: vi.fn(),
@@ -15,6 +20,10 @@ import {
   getAllPolicies,
   updatePolicy,
 } from "../../src/services/policyService.js";
+import {
+  policyDocumentDirectory,
+  removePolicyDocument,
+} from "../../src/utils/policyDocument.js";
 
 const policyInput = {
   title: "Student Handbook",
@@ -26,6 +35,8 @@ const policyInput = {
 describe("policyService", () => {
   beforeEach(() => {
     policyModel.getAllPolicies.mockReset();
+    policyModel.getPolicyById.mockReset();
+    policyModel.isPolicyDocumentReferenced.mockReset();
     policyModel.getCategoryById.mockReset();
     policyModel.deletePolicy.mockReset();
     policyModel.insertPolicy.mockReset();
@@ -46,6 +57,37 @@ describe("policyService", () => {
 
     await expect(deletePolicy("5")).resolves.toBe(policy);
     expect(policyModel.deletePolicy).toHaveBeenCalledWith("5");
+  });
+
+  it("deletes a managed document only after the policy row is deleted", async () => {
+    const file = `${randomUUID()}.pdf`;
+    const filePath = path.join(policyDocumentDirectory, file);
+    await mkdir(policyDocumentDirectory, { recursive: true });
+    await writeFile(filePath, "%PDF-1.7\npolicy");
+    policyModel.deletePolicy.mockResolvedValueOnce({ id: 5, file });
+    policyModel.isPolicyDocumentReferenced.mockResolvedValueOnce(false);
+
+    await expect(deletePolicy("5")).resolves.toMatchObject({ id: 5, file });
+    await expect(stat(filePath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(policyModel.isPolicyDocumentReferenced).toHaveBeenCalledWith(file);
+  });
+
+  it("keeps the document if deleting the database record fails", async () => {
+    const file = `${randomUUID()}.pdf`;
+    const filePath = path.join(policyDocumentDirectory, file);
+    await mkdir(policyDocumentDirectory, { recursive: true });
+    await writeFile(filePath, "%PDF-1.7\npolicy");
+    policyModel.deletePolicy.mockRejectedValueOnce(
+      new Error("Database unavailable"),
+    );
+
+    try {
+      await expect(deletePolicy("5")).rejects.toThrow("Database unavailable");
+      await expect(stat(filePath)).resolves.toBeDefined();
+      expect(policyModel.isPolicyDocumentReferenced).not.toHaveBeenCalled();
+    } finally {
+      await removePolicyDocument(file);
+    }
   });
 
   it("returns not found when the policy does not exist", async () => {
