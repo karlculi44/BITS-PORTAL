@@ -18,13 +18,20 @@ import verifyToken from "../middlewares/verifyToken.js";
 
 const router = Router();
 
-// Staff need to read categories to manage services and policies.
-router.get(
-  "/",
-  verifyToken,
-  authorizeSection("categories", "services", "policies"),
-  getAllCategories,
-);
+const authorizeCategoryListRead = (req, res, next) => {
+  if (req.query.type === "service") return next();
+
+  return verifyToken(req, res, (error) => {
+    if (error) return next(error);
+    return authorizeSection("categories", "services", "policies")(
+      req,
+      res,
+      next,
+    );
+  });
+};
+
+router.get("/", authorizeCategoryListRead, getAllCategories);
 router.get(
   "/:name",
   verifyToken,

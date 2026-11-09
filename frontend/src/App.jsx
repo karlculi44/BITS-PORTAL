@@ -1,6 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
+import PublicLandingPage from "./pages/PublicLandingPage";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Policies from "./pages/Policies";
@@ -23,7 +24,7 @@ function App() {
           <ScrollProgress />
           <Toaster position="top-right" />
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<PublicLandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/unauthorized"

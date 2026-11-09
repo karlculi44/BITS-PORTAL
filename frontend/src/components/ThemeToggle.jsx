@@ -14,7 +14,7 @@ function ThemeToggle() {
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
       aria-pressed={isDark}
       {...tooltip(`Switch to ${isDark ? "light" : "dark"} mode`, "bottom")}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-700"
+      className="public-theme-toggle flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-700"
     >
       <Icon size={18} aria-hidden="true" />
     </button>

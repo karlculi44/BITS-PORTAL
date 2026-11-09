@@ -32,6 +32,33 @@ const accessCookie = (role) => {
   return `accessToken=${token}`;
 };
 
+describe("GET /api/categories", () => {
+  beforeEach(() => {
+    process.env.JWT_ACCESS_SECRET = accessSecret;
+    pool.query.mockReset();
+  });
+
+  it("allows public reads of service categories", async () => {
+    const categories = [
+      { id: 1, name: "Online Services", type: "service", is_active: true },
+    ];
+    pool.query.mockResolvedValueOnce({ rows: categories });
+
+    const response = await request(app).get("/api/categories?type=service");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(categories);
+    expect(pool.query.mock.calls[0][1]).toEqual(["service"]);
+  });
+
+  it("keeps other category reads authenticated", async () => {
+    const response = await request(app).get("/api/categories?type=policy");
+
+    expect(response.status).toBe(401);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/categories/:name", () => {
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = accessSecret;
