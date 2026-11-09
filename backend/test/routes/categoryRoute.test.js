@@ -46,7 +46,10 @@ describe("GET /api/categories/:name", () => {
         type: "service",
         is_active: true,
       };
-      pool.query.mockResolvedValueOnce({ rows: [category] });
+      pool.query
+        .mockResolvedValueOnce({ rows: [category] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [category] });
 
       const response = await request(app)
         .delete("/api/categories/1")
@@ -111,7 +114,10 @@ describe("GET /api/categories/:name", () => {
         type: "service",
         is_active: false,
       };
-      pool.query.mockResolvedValueOnce({ rows: [category] });
+      pool.query
+        .mockResolvedValueOnce({ rows: [category] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [category] });
 
       const response = await request(app)
         .patch("/api/categories/1")
@@ -120,9 +126,17 @@ describe("GET /api/categories/:name", () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual(category);
-      expect(pool.query.mock.calls[0][0]).toContain("name = $1");
-      expect(pool.query.mock.calls[0][0]).toContain("is_active = $2");
-      expect(pool.query.mock.calls[0][1]).toEqual([
+      expect(pool.query.mock.calls[1][0]).toContain("name = $1");
+      expect(pool.query.mock.calls[1][0]).toContain("type = $2");
+      expect(pool.query.mock.calls[1][0]).toContain("id <> $3");
+      expect(pool.query.mock.calls[1][1]).toEqual([
+        "Updated Books",
+        "service",
+        "1",
+      ]);
+      expect(pool.query.mock.calls[2][0]).toContain("name = $1");
+      expect(pool.query.mock.calls[2][0]).toContain("is_active = $2");
+      expect(pool.query.mock.calls[2][1]).toEqual([
         "Updated Books",
         false,
         "1",
@@ -142,7 +156,9 @@ describe("GET /api/categories/:name", () => {
     });
 
     it("returns 409 for a duplicate name", async () => {
-      pool.query.mockRejectedValueOnce({ code: "23505" });
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ id: 1, type: "service" }] })
+        .mockResolvedValueOnce({ rows: [{ id: 2 }] });
 
       const response = await request(app)
         .patch("/api/categories/1")
@@ -172,6 +188,7 @@ describe("GET /api/categories/:name", () => {
       { name: "" },
       { description: "" },
       { type: "other" },
+      { type: "policy" },
       { isActive: "false" },
       { unknown: "value" },
     ])("rejects invalid update input %j", async (body) => {

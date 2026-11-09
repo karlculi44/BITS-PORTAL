@@ -8,7 +8,6 @@ export const createCategorySchema = z.object({
 export const updateCategorySchema = z
   .object({
     name: z.string().min(1, "Category name is required").optional(),
-    type: z.enum(["service", "policy"]).optional(),
     isActive: z.boolean().optional(),
   })
   .strict()

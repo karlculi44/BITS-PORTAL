@@ -5,8 +5,8 @@ export const getAllCategories = async (type) => {
   return await categoryModel.getAllCategories(type);
 };
 
-export const getCategoryByName = async (name) => {
-  return await categoryModel.getCategoryByName(name);
+export const getCategoryByName = async (name, type) => {
+  return await categoryModel.getCategoryByName(name, type);
 };
 
 export const searchCategoriesByName = async (name) => {
@@ -27,7 +27,28 @@ export const createCategory = async (name, type) => {
 
 export const updateCategory = async (category) => {
   try {
-    return await categoryModel.updateCategory(category);
+    const currentCategory = await categoryModel.getCategoryById(
+      category.categoryId,
+    );
+
+    if (!currentCategory) return undefined;
+
+    if (
+      category.name !== undefined &&
+      (await categoryModel.getCategoryByName(
+        category.name,
+        currentCategory.type,
+        category.categoryId,
+      ))
+    ) {
+      throw new AppError("Category already exists", 409);
+    }
+
+    return await categoryModel.updateCategory({
+      categoryId: category.categoryId,
+      name: category.name,
+      isActive: category.isActive,
+    });
   } catch (error) {
     if (error.code === "23505") {
       throw new AppError("Category already exists", 409);

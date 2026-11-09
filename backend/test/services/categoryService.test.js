@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/models/categoryModel.js", () => ({
   getAllCategories: vi.fn(),
+  getCategoryById: vi.fn(),
   getCategoryByName: vi.fn(),
   searchCategoriesByName: vi.fn(),
   insertCategory: vi.fn(),
@@ -20,6 +21,7 @@ import {
 
 describe("categoryService", () => {
   beforeEach(() => {
+    categoryModel.getCategoryById.mockReset();
     categoryModel.getCategoryByName.mockReset();
     categoryModel.searchCategoriesByName.mockReset();
     categoryModel.insertCategory.mockReset();
@@ -32,7 +34,7 @@ describe("categoryService", () => {
     categoryModel.getCategoryByName.mockResolvedValueOnce(category);
 
     await expect(getCategoryByName("Books")).resolves.toBe(category);
-    expect(categoryModel.getCategoryByName).toHaveBeenCalledWith("Books");
+    expect(categoryModel.getCategoryByName).toHaveBeenCalledWith("Books", undefined);
   });
 
   it("returns all categories matching a name fragment", async () => {
@@ -72,7 +74,7 @@ describe("categoryService", () => {
     await expect(createCategory("Books", "service")).rejects.toBe(error);
   });
 
-  it("passes category updates through to the model", async () => {
+  it("checks duplicates by the current type and excludes the updated category", async () => {
     const update = { categoryId: "1", name: "Updated Books", isActive: false };
     const category = {
       id: 1,
@@ -80,13 +82,48 @@ describe("categoryService", () => {
       type: "service",
       is_active: false,
     };
+    categoryModel.getCategoryById.mockResolvedValueOnce({
+      id: 1,
+      type: "service",
+    });
+    categoryModel.getCategoryByName.mockResolvedValueOnce(undefined);
     categoryModel.updateCategory.mockResolvedValueOnce(category);
 
     await expect(updateCategory(update)).resolves.toBe(category);
-    expect(categoryModel.updateCategory).toHaveBeenCalledWith(update);
+    expect(categoryModel.getCategoryByName).toHaveBeenCalledWith(
+      "Updated Books",
+      "service",
+      "1",
+    );
+    expect(categoryModel.updateCategory).toHaveBeenCalledWith({
+      categoryId: "1",
+      name: "Updated Books",
+      isActive: false,
+    });
+  });
+
+  it("rejects same-type duplicates before updating", async () => {
+    categoryModel.getCategoryById.mockResolvedValueOnce({
+      id: 1,
+      type: "policy",
+    });
+    categoryModel.getCategoryByName.mockResolvedValueOnce({ id: 2 });
+
+    await expect(
+      updateCategory({ categoryId: "1", name: "Books" }),
+    ).rejects.toMatchObject({
+      message: "Category already exists",
+      statusCode: 409,
+    });
+    expect(categoryModel.updateCategory).not.toHaveBeenCalled();
   });
 
   it("maps duplicate names during updates and rethrows other errors", async () => {
+    categoryModel.getCategoryById.mockResolvedValue({
+      id: 1,
+      type: "service",
+    });
+    categoryModel.getCategoryByName.mockResolvedValue(undefined);
     categoryModel.updateCategory.mockRejectedValueOnce({ code: "23505" });
     await expect(
       updateCategory({ categoryId: "1", name: "Books" }),

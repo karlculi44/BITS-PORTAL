@@ -11,12 +11,25 @@ export const getAllCategories = async (type) => {
   return result.rows;
 };
 
-export const getCategoryByName = async (name) => {
+export const getCategoryByName = async (name, type, excludeCategoryId) => {
   const result = await pool.query(
     `SELECT id, name, type, is_active, is_default
     FROM categories
-    WHERE name = $1`,
-    [name],
+    WHERE name = $1
+      AND ($2::text IS NULL OR type = $2)
+      AND ($3::integer IS NULL OR id <> $3)`,
+    [name, type ?? null, excludeCategoryId ?? null],
+  );
+
+  return result.rows[0];
+};
+
+export const getCategoryById = async (categoryId) => {
+  const result = await pool.query(
+    `SELECT id, name, type, is_active, is_default
+    FROM categories
+    WHERE id = $1`,
+    [categoryId],
   );
 
   return result.rows[0];
@@ -56,14 +69,6 @@ export const updateCategory = async ({
   if (name !== undefined) {
     values.push(name);
     updates.push(`name = $${values.length}`);
-  }
-
-  if (type !== undefined) {
-    values.push(type);
-    updates.push(`type = $${values.length}`);
-
-    // Only service categories may be default.
-    if (type !== "service") updates.push("is_default = false");
   }
 
   if (isActive !== undefined) {

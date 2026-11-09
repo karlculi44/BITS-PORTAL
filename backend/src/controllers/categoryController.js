@@ -9,10 +9,10 @@ export const createCategory = asyncHandler(async (req, res) => {
     throw new AppError("Category name,  and type are required", 400);
   }
 
-  const existingCategory = await categoryService.getCategoryByName(name);
+  const existingCategory = await categoryService.getCategoryByName(name, type);
 
   if (existingCategory) {
-    throw new AppError("Category already exists", 400);
+    throw new AppError("Category already exists", 409);
   }
 
   const category = await categoryService.createCategory(

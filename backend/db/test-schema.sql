@@ -38,7 +38,8 @@ CREATE TABLE public.categories (
   is_active boolean DEFAULT true NOT NULL,
   is_default boolean DEFAULT false NOT NULL,
   CONSTRAINT categories_pkey PRIMARY KEY (id),
-  CONSTRAINT categories_name_key UNIQUE (name)
+  CONSTRAINT categories_type_check CHECK (type IN ('service', 'policy')),
+  CONSTRAINT categories_name_type_key UNIQUE (name, type)
 );
 
 CREATE UNIQUE INDEX idx_categories_one_default_per_type

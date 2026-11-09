@@ -22,10 +22,11 @@ describe("category model integration", () => {
     await client.query(
       `CREATE TEMPORARY TABLE categories (
         id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        name character varying NOT NULL UNIQUE,
+        name character varying NOT NULL,
         type character varying NOT NULL,
         is_active boolean DEFAULT true NOT NULL,
-        is_default boolean DEFAULT false NOT NULL
+        is_default boolean DEFAULT false NOT NULL,
+        UNIQUE (name, type)
       )`,
     );
     await client.query(
@@ -69,21 +70,44 @@ describe("category model integration", () => {
     expect(await categoryModel.searchCategoriesByName(`${key}-missing`)).toEqual(
       [],
     );
-    expect(await categoryModel.getCategoryByName(`${key}%_Book`)).toBeUndefined();
-    expect(await categoryModel.getCategoryByName(names[0])).toMatchObject({
-      name: names[0],
-    });
+    expect(await categoryModel.getCategoryByName(`${key}%_Book`, "service"))
+      .toBeUndefined();
+    expect(
+      await categoryModel.getCategoryByName(names[0], "service"),
+    ).toMatchObject({ name: names[0], type: "service" });
   });
 
-  it("updates only supplied fields and enforces unique names", async () => {
+  it("allows same names across types and enforces uniqueness within a type", async () => {
     const first = await categoryModel.insertCategory(
-      `First ${randomUUID()}`,
+      `Shared ${randomUUID()}`,
       "service",
     );
-    const second = await categoryModel.insertCategory(
-      `Second ${randomUUID()}`,
+    const policy = await categoryModel.insertCategory(
+      `Shared ${first.name.slice("Shared ".length)}`,
       "policy",
     );
+    const anotherService = await categoryModel.insertCategory(
+      `Other ${randomUUID()}`,
+      "service",
+    );
+
+    expect(policy.name).toBe(first.name);
+    expect(
+      await categoryModel.getCategoryByName(first.name, "service"),
+    ).toMatchObject({ id: first.id, type: "service" });
+    expect(
+      await categoryModel.getCategoryByName(first.name, "service", first.id),
+    ).toBeUndefined();
+    expect(
+      await categoryModel.getCategoryByName(first.name, "policy"),
+    ).toMatchObject({ id: policy.id, type: "policy" });
+
+    await expect(
+      categoryModel.insertCategory(first.name, "service"),
+    ).rejects.toMatchObject({ code: "23505" });
+    await expect(
+      categoryModel.insertCategory(first.name, "policy"),
+    ).rejects.toMatchObject({ code: "23505" });
 
     const updated = await categoryModel.updateCategory({
       categoryId: first.id,
@@ -98,28 +122,26 @@ describe("category model integration", () => {
       is_active: false,
       is_default: false,
     });
-    expect(await categoryModel.getCategoryByName(updated.name)).toEqual(updated);
-    const renamed = await categoryModel.updateCategory({
-      categoryId: first.id,
-      name: `${updated.name} renamed`,
-      type: "policy",
-    });
-    expect(renamed).toEqual({
-      ...updated,
-      name: `${updated.name} renamed`,
-      type: "policy",
-    });
-    expect(await categoryModel.getCategoryByName(renamed.name)).toEqual(renamed);
+    expect(
+      await categoryModel.getCategoryByName(updated.name, "service"),
+    ).toEqual(updated);
     await expect(
-      categoryModel.updateCategory({ categoryId: first.id, name: renamed.name }),
-    ).resolves.toEqual(renamed);
-    await expect(
-      categoryModel.updateCategory({ categoryId: first.id, name: second.name }),
+      categoryModel.updateCategory({
+        categoryId: first.id,
+        name: anotherService.name,
+      }),
     ).rejects.toMatchObject({ code: "23505" });
+    await expect(
+      categoryModel.updateCategory({ categoryId: first.id, name: policy.name }),
+    ).resolves.toMatchObject({
+      id: first.id,
+      name: policy.name,
+      type: "service",
+    });
     expect(
       await categoryModel.updateCategory({
         categoryId: 2147483647,
-        type: "policy",
+        name: "Missing",
       }),
     ).toBeUndefined();
   });

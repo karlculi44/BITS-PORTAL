@@ -15,7 +15,7 @@ export const getServiceImageUrl = (image) => {
 };
 
 export const getServiceCategories = async () => {
-  const response = await api.get("/categories");
+  const response = await api.get("/categories", { params: { type: "service" } });
   if (!Array.isArray(response.data)) {
     throw new Error("Invalid categories response");
   }

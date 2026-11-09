@@ -91,7 +91,9 @@ describe("Services page", () => {
     expect(screen.getByText("No URL available.")).toBeTruthy();
 
     expect(api.get).toHaveBeenCalledTimes(2);
-    expect(api.get).toHaveBeenCalledWith("/categories");
+    expect(api.get).toHaveBeenCalledWith("/categories", {
+      params: { type: "service" },
+    });
     expect(api.post).not.toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
     expect(api.delete).not.toHaveBeenCalled();
