@@ -122,7 +122,13 @@ function UserPermissions({ user }) {
   );
 }
 
-function UserActions({ user, isSelf, statusUpdatingId, onEdit, onStatusChange }) {
+function UserActions({
+  user,
+  isSelf,
+  statusUpdatingId,
+  onEdit,
+  onStatusChange,
+}) {
   return (
     <div className="flex shrink-0 gap-1">
       <button
@@ -256,7 +262,11 @@ function Users() {
             searchLabel="Search users"
             searchTooltip="Search by username or name"
           />
-          <ViewToggle label="Users view" viewMode={viewMode} onChange={setViewMode} />
+          <ViewToggle
+            label="Users view"
+            viewMode={viewMode}
+            onChange={setViewMode}
+          />
           <button
             type="button"
             onClick={() => {
@@ -304,7 +314,7 @@ function Users() {
                   Role
                 </th>
                 <th scope="col" className="px-5 py-3">
-                  Permissions
+                  Access Level
                 </th>
                 <th scope="col" className="w-28 px-5 py-3">
                   Actions
@@ -398,7 +408,8 @@ function Users() {
         <UserModal
           user={selectedUser}
           isSelf={
-            !!selectedUser && String(selectedUser.id) === String(currentUser?.id)
+            !!selectedUser &&
+            String(selectedUser.id) === String(currentUser?.id)
           }
           onClose={() => setModalOpen(false)}
           onSaved={(updatedUser) => {
