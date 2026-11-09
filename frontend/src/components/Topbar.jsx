@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Menu, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { getServiceImageUrl } from "../services/serviceService";
 import { navItems } from "./navItems";
 import { tooltip } from "./tooltip";
 import ThemeToggle from "./ThemeToggle";
 
 function Topbar({ onMenuClick }) {
   const { user } = useAuth();
+  const [failedImage, setFailedImage] = useState("");
   const { pathname } = useLocation();
   const title = navItems.find((item) => item.to === pathname)?.label ?? "Admin";
+  const image = user?.profile_image ? getServiceImageUrl(user.profile_image) : "";
 
   return (
     <header className="topbar sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
@@ -37,7 +41,16 @@ function Topbar({ onMenuClick }) {
             <p className="text-xs capitalize text-slate-500">{user.role}</p>
           </div>
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-            <User size={18} aria-hidden="true" />
+            {image && image !== failedImage ? (
+              <img
+                src={image}
+                alt=""
+                onError={() => setFailedImage(image)}
+                className="h-9 w-9 rounded-full object-cover"
+              />
+            ) : (
+              <User size={18} aria-hidden="true" />
+            )}
           </div>
         </div>
       )}

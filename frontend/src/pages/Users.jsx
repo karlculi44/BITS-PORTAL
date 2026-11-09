@@ -160,7 +160,7 @@ function UserActions({ user, isSelf, statusUpdatingId, onEdit, onStatusChange })
 }
 
 function Users() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser: updateCurrentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -401,7 +401,13 @@ function Users() {
             !!selectedUser && String(selectedUser.id) === String(currentUser?.id)
           }
           onClose={() => setModalOpen(false)}
-          onSaved={() => {
+          onSaved={(updatedUser) => {
+            if (
+              updatedUser &&
+              String(updatedUser.id) === String(currentUser?.id)
+            ) {
+              updateCurrentUser(updatedUser);
+            }
             setModalOpen(false);
             reload();
           }}

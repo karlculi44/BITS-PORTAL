@@ -165,6 +165,7 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
     const append = (key, value) => payload.append(key, String(value));
 
     try {
+      let updatedUser;
       if (user) {
         // The update endpoint accepts partial bodies, so only send changes.
         const original = formValues(user);
@@ -191,7 +192,8 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
           closeWithTransition(onClose);
           return;
         }
-        await updateUser(user.id, payload);
+        const result = await updateUser(user.id, payload);
+        updatedUser = result.data;
       } else {
         append("firstName", firstName);
         append("lastName", lastName);
@@ -205,7 +207,7 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
       toast.success(
         user ? "User updated successfully." : "User created successfully.",
       );
-      closeWithTransition(onSaved);
+      closeWithTransition(() => onSaved(updatedUser));
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to save user.");
       submittingRef.current = false;
