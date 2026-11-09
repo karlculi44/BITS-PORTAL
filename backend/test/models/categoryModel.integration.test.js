@@ -33,6 +33,18 @@ describe("category model integration", () => {
       `CREATE UNIQUE INDEX idx_categories_one_default_per_type
         ON categories (type) WHERE is_default = true`,
     );
+    await client.query(
+      `CREATE TEMPORARY TABLE services (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        category_id integer NOT NULL
+      )`,
+    );
+    await client.query(
+      `CREATE TEMPORARY TABLE policies (
+        id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        category_id integer NOT NULL
+      )`,
+    );
     vi.spyOn(modelPool, "query").mockImplementation((...args) =>
       client.query(...args),
     );
@@ -146,6 +158,87 @@ describe("category model integration", () => {
     ).toBeUndefined();
   });
 
+  it("counts only matching record types and preserves empty categories", async () => {
+    const key = randomUUID();
+    const serviceCategory = await categoryModel.insertCategory(
+      `Service ${key}`,
+      "service",
+    );
+    const emptyServiceCategory = await categoryModel.insertCategory(
+      `Empty service ${key}`,
+      "service",
+    );
+    const policyCategory = await categoryModel.insertCategory(
+      `Policy ${key}`,
+      "policy",
+    );
+
+    const services = await client.query(
+      `INSERT INTO services (category_id)
+      VALUES ($1), ($1), ($2)
+      RETURNING id`,
+      [serviceCategory.id, policyCategory.id],
+    );
+    const policies = await client.query(
+      `INSERT INTO policies (category_id)
+      VALUES ($1), ($2)
+      RETURNING id`,
+      [policyCategory.id, serviceCategory.id],
+    );
+
+    const serviceCategories = await categoryModel.getAllCategories("service");
+    const policyCategories = await categoryModel.getAllCategories("policy");
+
+    expect(serviceCategories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: serviceCategory.id, item_count: 2 }),
+        expect.objectContaining({
+          id: emptyServiceCategory.id,
+          item_count: 0,
+        }),
+      ]),
+    );
+    expect(policyCategories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: policyCategory.id, item_count: 1 }),
+      ]),
+    );
+    expect(serviceCategories.every((category) => category.type === "service"))
+      .toBe(true);
+    expect(policyCategories.every((category) => category.type === "policy"))
+      .toBe(true);
+
+    await client.query(
+      `UPDATE services
+      SET category_id = $1
+      WHERE id = $2`,
+      [emptyServiceCategory.id, services.rows[0].id],
+    );
+    await client.query("DELETE FROM services WHERE id = $1", [
+      services.rows[1].id,
+    ]);
+    await client.query("DELETE FROM policies WHERE id = $1", [
+      policies.rows[0].id,
+    ]);
+
+    const updatedServiceCategories =
+      await categoryModel.getAllCategories("service");
+    const updatedPolicyCategories =
+      await categoryModel.getAllCategories("policy");
+
+    expect(updatedServiceCategories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: serviceCategory.id, item_count: 0 }),
+        expect.objectContaining({ id: emptyServiceCategory.id, item_count: 1 }),
+      ]),
+    );
+    expect(updatedPolicyCategories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: policyCategory.id, item_count: 0 }),
+      ]),
+    );
+  });
+
   it("deletes a category and returns the deleted record", async () => {
     const category = await categoryModel.insertCategory(
       `Delete ${randomUUID()}`,
@@ -173,8 +266,8 @@ describe("category model integration", () => {
     expect(newDefault.is_default).toBe(true);
     const services = await categoryModel.getAllCategories("service");
     expect(services.every((category) => category.type === "service")).toBe(true);
-    expect(services.filter((category) => category.is_default)).toEqual([
-      newDefault,
+    expect(services.filter((category) => category.is_default)).toMatchObject([
+      { id: newDefault.id, is_default: true },
     ]);
     const unset = await categoryModel.setDefaultCategory(serviceB.id, false);
     expect(unset.is_default).toBe(false);

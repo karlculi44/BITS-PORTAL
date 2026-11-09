@@ -137,6 +137,11 @@ function Categories() {
   const allCategoriesDefault = !categories.some(
     (category) => category.is_default,
   );
+  const serviceCount = categories.reduce(
+    (total, category) =>
+      category.type === "service" ? total + category.item_count : total,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -222,6 +227,9 @@ function Categories() {
                 <th scope="col" className="px-5 py-3">
                   Name
                 </th>
+                <th scope="col" className="w-24 px-5 py-3">
+                  Items
+                </th>
                 {isServiceTab && (
                   <th scope="col" className="w-32 px-5 py-3">
                     Default
@@ -243,6 +251,9 @@ function Categories() {
                     <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       System
                     </span>
+                  </td>
+                  <td className="px-5 py-4 text-slate-600 font-extrabold">
+                    {serviceCount}
                   </td>
                   <td className="px-5 py-4">
                     <input
@@ -269,8 +280,11 @@ function Categories() {
               )}
               {filteredCategories.map((category) => (
                 <tr key={category.id}>
-                  <td className="wrap-break-word px-5 py-4 font-medium text-slate-800">
+                  <td className="wrap-break-word px-5 py-4 font-medium text-slate-800 ">
                     {category.name}
+                  </td>
+                  <td className="px-5 py-4 text-slate-600 font-extrabold">
+                    {category.item_count}
                   </td>
                   {isServiceTab && (
                     <td className="px-5 py-4">

@@ -2,9 +2,31 @@ import pool from "../config/db.js";
 
 export const getAllCategories = async (type) => {
   const result = await pool.query(
-    `SELECT id, name, type, is_active, is_default
+    `SELECT
+      categories.id,
+      categories.name,
+      categories.type,
+      categories.is_active,
+      categories.is_default,
+      CASE
+        WHEN categories.type = 'service' THEN COUNT(DISTINCT services.id)
+        WHEN categories.type = 'policy' THEN COUNT(DISTINCT policies.id)
+        ELSE 0
+      END::int AS item_count
     FROM categories
-    WHERE ($1::text IS NULL OR type = $1)`,
+    LEFT JOIN services
+      ON categories.type = 'service'
+      AND services.category_id = categories.id
+    LEFT JOIN policies
+      ON categories.type = 'policy'
+      AND policies.category_id = categories.id
+    WHERE ($1::text IS NULL OR categories.type = $1)
+    GROUP BY
+      categories.id,
+      categories.name,
+      categories.type,
+      categories.is_active,
+      categories.is_default`,
     [type ?? null],
   );
 
