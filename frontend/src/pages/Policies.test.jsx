@@ -45,6 +45,7 @@ const renderPage = () =>
   );
 
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   vi.spyOn(api, "get").mockImplementation((path) => {
     if (path === "/policies") return Promise.resolve({ data: policies });
     if (path === "/categories") return Promise.resolve({ data: categories });

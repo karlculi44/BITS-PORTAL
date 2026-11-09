@@ -334,7 +334,8 @@ select option {
   background-color: var(--app-primary-soft);
 }
 
-.app-shell [role="dialog"] {
+.app-shell [role="dialog"],
+.confirmation-dialog {
   border: 1px solid var(--app-border);
   animation: modal-enter 180ms ease-out both;
 }
@@ -347,7 +348,8 @@ select option {
   animation: backdrop-exit 180ms ease-in both;
 }
 
-.app-shell .modal-backdrop.modal-closing [role="dialog"] {
+.app-shell .modal-backdrop.modal-closing [role="dialog"],
+.modal-backdrop.modal-closing .confirmation-dialog {
   animation: modal-exit 180ms ease-in both;
 }
 

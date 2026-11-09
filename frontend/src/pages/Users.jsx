@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pencil, Plus, UserCheck, UserX } from "lucide-react";
 import toast from "react-hot-toast";
+import ConfirmationModal from "../components/ConfirmationModal";
 import SearchFilter from "../components/SearchFilter";
 import UserModal from "../components/UserModal";
 import ViewToggle from "../components/ViewToggle";
@@ -174,6 +175,7 @@ function Users() {
   const [viewMode, setViewMode] = useState("list");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userToUpdate, setUserToUpdate] = useState(null);
   const [refresh, setRefresh] = useState(0);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
@@ -204,9 +206,6 @@ function Users() {
 
   const handleStatusChange = async (user) => {
     const activating = !user.is_active;
-    const action = activating ? "Activate" : "Deactivate";
-    if (!window.confirm(`${action} user "${user.username}"?`)) return;
-
     setStatusUpdatingId(user.id);
     try {
       const result = await updateUser(user.id, { isActive: activating });
@@ -214,16 +213,6 @@ function Users() {
         current.map((item) =>
           item.id === user.id ? { ...item, ...result.data } : item,
         ),
-      );
-      toast.success(
-        activating
-          ? "User activated successfully."
-          : "User deactivated successfully.",
-      );
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          `Unable to ${action.toLowerCase()} user.`,
       );
     } finally {
       setStatusUpdatingId(null);
@@ -355,7 +344,7 @@ function Users() {
                         isSelf={isSelf}
                         statusUpdatingId={statusUpdatingId}
                         onEdit={openEditModal}
-                        onStatusChange={handleStatusChange}
+                        onStatusChange={setUserToUpdate}
                       />
                     </td>
                   </tr>
@@ -392,7 +381,7 @@ function Users() {
                     isSelf={String(user.id) === String(currentUser?.id)}
                     statusUpdatingId={statusUpdatingId}
                     onEdit={openEditModal}
-                    onStatusChange={handleStatusChange}
+                    onStatusChange={setUserToUpdate}
                   />
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
@@ -421,6 +410,22 @@ function Users() {
             }
             setModalOpen(false);
             reload();
+          }}
+        />
+      )}
+      {userToUpdate && (
+        <ConfirmationModal
+          title={`${userToUpdate.is_active ? "Deactivate" : "Activate"} User`}
+          message={`${userToUpdate.is_active ? "Deactivate" : "Activate"} user "${userToUpdate.username}"?`}
+          confirmLabel={`${userToUpdate.is_active ? "Deactivate" : "Activate"} User`}
+          pendingLabel={userToUpdate.is_active ? "Deactivating..." : "Activating..."}
+          errorMessage={`Unable to ${userToUpdate.is_active ? "deactivate" : "activate"} user.`}
+          destructive={userToUpdate.is_active}
+          onConfirm={() => handleStatusChange(userToUpdate)}
+          onClose={() => setUserToUpdate(null)}
+          onSuccess={() => {
+            toast.success(userToUpdate.is_active ? "User deactivated successfully." : "User activated successfully.");
+            setUserToUpdate(null);
           }}
         />
       )}

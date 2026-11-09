@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import DeletePolicyModal from "../components/DeletePolicyModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 import PolicyModal from "../components/PolicyModal";
 import SearchFilter from "../components/SearchFilter";
 import ViewToggle from "../components/ViewToggle";
@@ -9,7 +9,7 @@ import { tooltip } from "../components/tooltip";
 import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
 import { getCategories } from "../services/categoryService";
-import { getPolicyDocument, getPolicies } from "../services/policyService";
+import { deletePolicy, getPolicyDocument, getPolicies } from "../services/policyService";
 
 function PolicyActions({
   policy,
@@ -333,13 +333,19 @@ function Policies() {
         />
       )}
       {policyToDelete && (
-        <DeletePolicyModal
-          policy={policyToDelete}
+        <ConfirmationModal
+          title="Delete Policy"
+          message={`Delete policy "${policyToDelete.title}"? This action cannot be undone.`}
+          confirmLabel="Delete Policy"
+          pendingLabel="Deleting..."
+          errorMessage="Unable to delete policy."
+          onConfirm={() => deletePolicy(policyToDelete.id)}
           onClose={() => setPolicyToDelete(null)}
-          onDeleted={(deletedPolicy) => {
+          onSuccess={() => {
+            toast.success("Policy deleted successfully.");
             setPolicyToDelete(null);
             setPolicies((current) =>
-              current.filter((policy) => policy.id !== deletedPolicy.id),
+              current.filter((policy) => policy.id !== policyToDelete.id),
             );
           }}
         />

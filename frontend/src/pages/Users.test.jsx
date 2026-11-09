@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AuthContext } from "../context/authContextValue";
 import { getUsers, updateUser } from "../services/userService";
+import toast from "react-hot-toast";
 import Users from "./Users";
 
 vi.mock("../services/userService", () => ({
@@ -35,6 +36,7 @@ function renderUsers() {
 }
 
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   getUsers.mockResolvedValue(users);
 });
 
@@ -72,7 +74,6 @@ describe("Users page views", () => {
 
   it("retains user details and actions in grid view", async () => {
     updateUser.mockResolvedValue({ data: { is_active: true } });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     renderUsers();
     await screen.findByText("bsmith");
     fireEvent.click(screen.getByRole("button", { name: "Grid View" }));
@@ -87,10 +88,32 @@ describe("Users page views", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Activate bsmith" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Activate User" })).getByRole("button", { name: "Activate User" }));
     await waitFor(() => expect(updateUser).toHaveBeenCalledWith(2, { isActive: true }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Activate User" })).toBeNull());
     expect(await screen.findByRole("button", { name: "Deactivate bsmith" })).toBeTruthy();
     expect(screen.queryByText("Inactive")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "List View" }));
+    expect(screen.getByRole("button", { name: "Deactivate bsmith" })).toBeTruthy();
+  });
+
+  it("confirms deactivation, blocks repeated submissions, and reports errors", async () => {
+    getUsers.mockResolvedValue([users[0], { ...users[1], is_active: true }]);
+    let rejectUpdate;
+    updateUser.mockReturnValue(new Promise((_, reject) => { rejectUpdate = reject; }));
+    renderUsers();
+    fireEvent.click(await screen.findByRole("button", { name: "Deactivate bsmith" }));
+    const dialog = screen.getByRole("dialog", { name: "Deactivate User" });
+    expect(dialog.textContent).toContain('Deactivate user "bsmith"?');
+    const confirm = within(dialog).getByRole("button", { name: "Deactivate User" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    expect(updateUser).toHaveBeenCalledTimes(1);
+    expect(updateUser).toHaveBeenCalledWith(2, { isActive: false });
+    expect(within(dialog).getByRole("button", { name: "Cancel" }).disabled).toBe(true);
+    rejectUpdate({ response: { data: { message: "Cannot update user" } } });
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Cannot update user"));
+    expect(within(dialog).getByRole("button", { name: "Deactivate User" }).disabled).toBe(false);
     expect(screen.getByRole("button", { name: "Deactivate bsmith" })).toBeTruthy();
   });
 

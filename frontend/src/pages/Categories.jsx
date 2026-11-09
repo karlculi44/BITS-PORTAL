@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import CategoryModal from "../components/CategoryModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 import SearchFilter from "../components/SearchFilter";
 import { tooltip } from "../components/tooltip";
 import { hasSectionAccess } from "../components/navItems";
@@ -28,6 +29,7 @@ function Categories() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [refresh, setRefresh] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [defaultUpdatingId, setDefaultUpdatingId] = useState(null);
@@ -108,17 +110,6 @@ function Categories() {
       );
     } finally {
       setDefaultUpdatingId(null);
-    }
-  };
-
-  const handleDelete = async (category) => {
-    if (!window.confirm(`Delete category "${category.name}"?`)) return;
-    try {
-      await deleteCategory(category.id);
-      toast.success("Category deleted successfully.");
-      reload();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Unable to delete category.");
     }
   };
 
@@ -321,7 +312,7 @@ function Categories() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(category)}
+                        onClick={() => setCategoryToDelete(category)}
                         disabled={!isAdmin}
                         aria-label={`Delete ${category.name}`}
                         {...tooltip("Delete Category")}
@@ -344,6 +335,22 @@ function Categories() {
           onClose={() => setModalOpen(false)}
           onSaved={() => {
             setModalOpen(false);
+            reload();
+          }}
+        />
+      )}
+      {categoryToDelete && (
+        <ConfirmationModal
+          title="Delete Category"
+          message={`Delete category "${categoryToDelete.name}"?`}
+          confirmLabel="Delete Category"
+          pendingLabel="Deleting..."
+          errorMessage="Unable to delete category."
+          onConfirm={() => deleteCategory(categoryToDelete.id)}
+          onClose={() => setCategoryToDelete(null)}
+          onSuccess={() => {
+            toast.success("Category deleted successfully.");
+            setCategoryToDelete(null);
             reload();
           }}
         />

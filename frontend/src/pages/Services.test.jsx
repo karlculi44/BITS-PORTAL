@@ -27,6 +27,7 @@ function renderApp() {
 }
 
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   if (!URL.createObjectURL) {
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,

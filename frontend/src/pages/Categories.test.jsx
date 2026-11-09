@@ -1,14 +1,18 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AuthContext } from "../context/authContextValue";
-import { getCategories } from "../services/categoryService";
+import { deleteCategory, getCategories } from "../services/categoryService";
+import toast from "react-hot-toast";
 import Categories from "./Categories";
 
 vi.mock("../services/categoryService", () => ({
   deleteCategory: vi.fn(),
   getCategories: vi.fn(),
   setDefaultCategory: vi.fn(),
+}));
+vi.mock("react-hot-toast", () => ({
+  default: { success: vi.fn(), error: vi.fn() },
 }));
 
 const serviceCategories = [
@@ -49,9 +53,14 @@ const renderPage = () =>
     </AuthContext.Provider>,
   );
 
+beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+});
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("Categories page item counts", () => {
@@ -91,5 +100,39 @@ describe("Categories page item counts", () => {
     expect(
       within(policyTable).queryByRole("row", { name: /All Categories/ }),
     ).toBeNull();
+  });
+
+  describe("Category deletion", () => {
+    it.each(["service", "policy"])("confirms and reloads after deleting a %s category", async (type) => {
+      getCategories.mockImplementation((categoryType) =>
+        Promise.resolve(categoryType === "service" ? serviceCategories : policyCategories),
+      );
+      deleteCategory.mockResolvedValue({});
+      renderPage();
+      await screen.findByRole("button", { name: "Delete IT Services" });
+      if (type === "policy") fireEvent.click(screen.getByRole("tab", { name: "Policy Categories" }));
+      const name = type === "service" ? "IT Services" : "Executive Orders";
+      const id = type === "service" ? 1 : 3;
+      fireEvent.click(await screen.findByRole("button", { name: `Delete ${name}` }));
+      const dialog = screen.getByRole("dialog", { name: "Delete Category" });
+      expect(dialog.textContent).toContain(`Delete category "${name}"?`);
+      expect(deleteCategory).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete Category" }));
+      await waitFor(() => expect(deleteCategory).toHaveBeenCalledWith(id));
+      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delete Category" })).toBeNull());
+      expect(toast.success).toHaveBeenCalledWith("Category deleted successfully.");
+      await waitFor(() => expect(getCategories.mock.calls.filter(([tab]) => tab === type)).toHaveLength(2));
+    });
+
+    it("keeps the confirmation open after a failed deletion", async () => {
+      getCategories.mockResolvedValue(serviceCategories);
+      deleteCategory.mockRejectedValue({ response: { data: { message: "Category in use" } } });
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: "Delete IT Services" }));
+      const dialog = screen.getByRole("dialog", { name: "Delete Category" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete Category" }));
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Category in use"));
+      expect(within(dialog).getByRole("button", { name: "Delete Category" }).disabled).toBe(false);
+    });
   });
 });

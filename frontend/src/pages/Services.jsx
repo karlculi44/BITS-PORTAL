@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
-import DeleteServiceModal from "../components/DeleteServiceModal";
+import toast from "react-hot-toast";
+import ConfirmationModal from "../components/ConfirmationModal";
 import ServiceModal from "../components/ServiceModal";
 import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
@@ -9,6 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 import { getServices } from "../services/dashboardService";
 import SearchFilter from "../components/SearchFilter";
 import {
+  deleteService,
   getServiceCategories,
   getServiceImageUrl,
 } from "../services/serviceService";
@@ -353,12 +355,18 @@ function Services() {
         />
       )}
       {serviceToDelete && (
-        <DeleteServiceModal
-          service={serviceToDelete}
+        <ConfirmationModal
+          title="Delete Service"
+          message={`Delete service "${serviceToDelete.title}"? This action cannot be undone.`}
+          confirmLabel="Delete Service"
+          pendingLabel="Deleting..."
+          errorMessage="Unable to delete service."
+          onConfirm={() => deleteService(serviceToDelete.id)}
           onClose={() => setServiceToDelete(null)}
-          onDeleted={(service) => {
+          onSuccess={() => {
+            toast.success("Service deleted successfully.");
             setServiceToDelete(null);
-            setServices((current) => current.filter((item) => item.id !== service.id));
+            setServices((current) => current.filter((item) => item.id !== serviceToDelete.id));
           }}
         />
       )}
