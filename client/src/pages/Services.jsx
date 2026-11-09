@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
+import DeleteServiceModal from "../components/DeleteServiceModal";
 import ServiceModal from "../components/ServiceModal";
 import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
@@ -65,7 +66,7 @@ function ServiceUrl({ url }) {
 
 const ADMIN_ONLY_MESSAGE = "Only admins can manage services";
 
-function ServiceActions({ service, isAdmin, onEdit }) {
+function ServiceActions({ service, isAdmin, onEdit, onDelete }) {
   return (
     <div className="flex shrink-0 gap-1">
       <span {...(!isAdmin && tooltip(ADMIN_ONLY_MESSAGE))}>
@@ -80,14 +81,18 @@ function ServiceActions({ service, isAdmin, onEdit }) {
           <Pencil size={18} aria-hidden="true" />
         </button>
       </span>
-      <button
-        type="button"
-        aria-label={`Delete ${service.title}`}
-        {...tooltip("Delete Service")}
-        className="rounded-md p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-red-700"
-      >
-        <Trash2 size={18} aria-hidden="true" />
-      </button>
+      <span {...(!isAdmin && tooltip(ADMIN_ONLY_MESSAGE))}>
+        <button
+          type="button"
+          onClick={() => onDelete(service)}
+          disabled={!isAdmin}
+          aria-label={`Delete ${service.title}`}
+          {...(isAdmin && tooltip("Delete Service"))}
+          className="rounded-md p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Trash2 size={18} aria-hidden="true" />
+        </button>
+      </span>
     </div>
   );
 }
@@ -105,6 +110,7 @@ function Services() {
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [serviceToDelete, setServiceToDelete] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -163,7 +169,6 @@ function Services() {
     setSelectedService(service);
     setModalOpen(true);
   };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -287,6 +292,7 @@ function Services() {
                       service={service}
                       isAdmin={isAdmin}
                       onEdit={openEditModal}
+                      onDelete={setServiceToDelete}
                     />
                   </td>
                 </tr>
@@ -320,6 +326,7 @@ function Services() {
                     service={service}
                     isAdmin={isAdmin}
                     onEdit={openEditModal}
+                    onDelete={setServiceToDelete}
                   />
                 </div>
                 <p className="mt-3 line-clamp-3 flex-1 text-sm text-slate-600">
@@ -342,6 +349,16 @@ function Services() {
             setLoading(true);
             setError("");
             setRefresh((current) => current + 1);
+          }}
+        />
+      )}
+      {serviceToDelete && (
+        <DeleteServiceModal
+          service={serviceToDelete}
+          onClose={() => setServiceToDelete(null)}
+          onDeleted={(service) => {
+            setServiceToDelete(null);
+            setServices((current) => current.filter((item) => item.id !== service.id));
           }}
         />
       )}

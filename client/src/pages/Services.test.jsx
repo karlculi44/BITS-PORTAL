@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "../App";
 import { AuthContext } from "../context/authContextValue";
 import api from "../services/api";
 import toast from "react-hot-toast";
 import ServiceModal from "../components/ServiceModal";
+import Services from "./Services";
 
 vi.mock("react-hot-toast", () => ({
   default: { success: vi.fn(), error: vi.fn() },
@@ -58,7 +59,7 @@ afterEach(() => {
 });
 
 describe("Services page", () => {
-  it("loads the API records in the dashboard and keeps delete inert", async () => {
+  it("loads the API records in the dashboard", async () => {
     let resolveRequest;
     api.get.mockReturnValue(new Promise((resolve) => {
       resolveRequest = resolve;
@@ -89,7 +90,6 @@ describe("Services page", () => {
     expect(screen.getByText("No description available.")).toBeTruthy();
     expect(screen.getByText("No URL available.")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete Email" }));
     expect(api.get).toHaveBeenCalledTimes(2);
     expect(api.get).toHaveBeenCalledWith("/categories");
     expect(api.post).not.toHaveBeenCalled();
@@ -104,6 +104,104 @@ describe("Services page", () => {
     api.get.mockResolvedValue({ data: [] });
     renderApp();
     expect(await screen.findByText("No services available.")).toBeTruthy();
+  });
+
+  describe("deleting services", () => {
+    const records = [
+      { id: 1, title: "Email", description: "Campus email", category_id: 2 },
+      { id: 2, title: "Library", description: "Campus library", category_id: 2 },
+    ];
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      api.get.mockImplementation((path) => Promise.resolve({
+        data: path === "/services" ? records : [{ id: 2, name: "Tools", type: "service" }],
+      }));
+    });
+
+    it.each(["list", "grid"])("deletes the selected service in %s view", async (view) => {
+      let resolveDelete;
+      api.delete.mockReturnValue(new Promise((resolve) => { resolveDelete = resolve; }));
+      renderApp();
+      await screen.findByText("Email");
+      if (view === "grid") fireEvent.click(screen.getByRole("button", { name: "Grid View" }));
+      fireEvent.change(screen.getByLabelText("Search services"), { target: { value: "Campus" } });
+      fireEvent.click(screen.getByRole("button", { name: "Delete Email" }));
+      const dialog = screen.getByRole("dialog", { name: "Delete Service" });
+      expect(dialog.textContent).toContain('Delete service "Email"?');
+      expect(api.delete).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete Service" }));
+      expect(api.delete).toHaveBeenCalledWith("/services/1");
+      expect(within(dialog).getByRole("button", { name: "Deleting..." }).disabled).toBe(true);
+      expect(within(dialog).getByRole("button", { name: "Cancel" }).disabled).toBe(true);
+      fireEvent.keyDown(dialog, { key: "Escape" });
+      fireEvent.mouseDown(dialog.parentElement);
+      expect(screen.getByRole("dialog", { name: "Delete Service" })).toBeTruthy();
+      expect(api.delete).toHaveBeenCalledTimes(1);
+      resolveDelete({ data: { message: "Service deleted successfully" } });
+      await waitFor(() => expect(screen.queryByText("Email")).toBeNull());
+      expect(screen.getByText("Library")).toBeTruthy();
+      expect(screen.getByLabelText("Search services").value).toBe("Campus");
+      expect(toast.success).toHaveBeenCalledWith("Service deleted successfully.");
+      fireEvent.click(screen.getByRole("button", { name: view === "list" ? "Grid View" : "List View" }));
+      expect(screen.queryByText("Email")).toBeNull();
+      expect(screen.getByText("Library")).toBeTruthy();
+    });
+
+    it("does not delete when confirmation is cancelled and restores focus", async () => {
+      renderApp();
+      const trigger = await screen.findByRole("button", { name: "Delete Email" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      const dialog = screen.getByRole("dialog", { name: "Delete Service" });
+      expect(document.activeElement).toBe(dialog);
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      expect(api.delete).not.toHaveBeenCalled();
+      expect(screen.getByText("Email")).toBeTruthy();
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it("keeps the service and reports failures", async () => {
+      api.delete.mockRejectedValue({ response: { data: { message: "Cannot delete service" } } });
+      renderApp();
+      fireEvent.click(await screen.findByRole("button", { name: "Delete Email" }));
+      const dialog = screen.getByRole("dialog", { name: "Delete Service" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete Service" }));
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Cannot delete service"));
+      expect(screen.getByText("Email")).toBeTruthy();
+      expect(within(dialog).getByRole("button", { name: "Delete Service" }).disabled).toBe(false);
+    });
+
+    it.each(["Escape", "backdrop", "close"])("dismisses with %s without deleting", async (method) => {
+      renderApp();
+      fireEvent.click(await screen.findByRole("button", { name: "Delete Email" }));
+      const dialog = screen.getByRole("dialog", { name: "Delete Service" });
+      if (method === "Escape") fireEvent.keyDown(dialog, { key: "Escape" });
+      if (method === "backdrop") fireEvent.mouseDown(dialog.parentElement);
+      if (method === "close") fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      expect(api.delete).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ role: "staff", can_access_services: false }, true],
+      [{ role: "staff", can_access_services: true }, false],
+    ])("respects service section access for %o", async (staff, disabled) => {
+      render(
+        <AuthContext.Provider value={{ user: staff }}>
+          <Services />
+        </AuthContext.Provider>,
+      );
+      const deleteButton = await screen.findByRole("button", { name: "Delete Email" });
+      expect(deleteButton.disabled).toBe(disabled);
+      fireEvent.click(screen.getByRole("button", { name: "Grid View" }));
+      expect(screen.getByRole("button", { name: "Delete Email" }).disabled).toBe(disabled);
+      if (disabled) {
+        fireEvent.click(screen.getByRole("button", { name: "Delete Email" }));
+        expect(api.delete).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe("Search and category filter", () => {
