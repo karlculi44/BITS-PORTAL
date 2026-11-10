@@ -51,9 +51,18 @@ describe("GET /api/categories", () => {
     expect(pool.query.mock.calls[0][1]).toEqual(["service"]);
   });
 
-  it("keeps other category reads authenticated", async () => {
+  it("allows public reads of policy categories", async () => {
+    const categories = [{ id: 2, name: "Policies", type: "policy" }];
+    pool.query.mockResolvedValueOnce({ rows: categories });
     const response = await request(app).get("/api/categories?type=policy");
 
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(categories);
+    expect(pool.query.mock.calls[0][1]).toEqual(["policy"]);
+  });
+
+  it("keeps unfiltered category reads authenticated", async () => {
+    const response = await request(app).get("/api/categories");
     expect(response.status).toBe(401);
     expect(pool.query).not.toHaveBeenCalled();
   });

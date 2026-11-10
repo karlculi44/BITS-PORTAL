@@ -30,17 +30,10 @@ const normalizeMultipartNumbers = (req, res, next) => {
   next();
 };
 
-router.get(
-  "/",
-  verifyToken,
-  authorizeSection("policies"),
-  getAllPoliciesController,
-);
+router.get("/", getAllPoliciesController);
 
 router.get(
   "/:id/document",
-  verifyToken,
-  authorizeSection("policies"),
   validatePolicyId,
   getPolicyDocumentController,
 );

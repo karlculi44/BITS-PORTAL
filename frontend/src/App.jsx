@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import PublicLandingPage from "./pages/PublicLandingPage";
 import AboutPage from "./pages/AboutPage";
+import PublicPoliciesPage from "./pages/PublicPoliciesPage";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Policies from "./pages/Policies";
@@ -22,6 +23,7 @@ import ScrollToTop from "./components/ScrollToTop";
 const publicRoutes = [
   { path: "/", element: <PublicLandingPage /> },
   { path: "/about", element: <AboutPage /> },
+  { path: "/policy-library", element: <PublicPoliciesPage /> },
   { path: "/login", element: <Login /> },
   { path: "/unauthorized", element: <Placeholder name="Unauthorized" /> },
 ];

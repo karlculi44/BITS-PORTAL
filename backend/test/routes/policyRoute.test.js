@@ -68,7 +68,7 @@ describe("GET /api/policies", () => {
         category_id: 11,
         title: "Student Handbook",
         description: null,
-        file: "https://example.com/handbook.pdf",
+        file: "handbook.pdf",
       },
     ];
     pool.query.mockResolvedValueOnce({ rows: policies });
@@ -105,10 +105,13 @@ describe("GET /api/policies", () => {
     expect(response.body.message).toBe("Internal Server Error");
   });
 
-  it("requires policy access to list policies", async () => {
+  it("allows public reads without exposing filesystem paths", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{ id: 5, title: "Policy", file: "C:\\private\\policy.pdf" }],
+    });
     const response = await request(app).get("/api/policies");
-    expect(response.status).toBe(401);
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ id: 5, title: "Policy", file: "policy.pdf" }]);
   });
 });
 
@@ -118,7 +121,7 @@ describe("GET /api/policies/:id/document", () => {
     pool.query.mockReset();
   });
 
-  it("serves a managed policy PDF inline to authorized administrators", async () => {
+  it("serves a managed policy PDF inline to public visitors", async () => {
     const filename = `${randomUUID()}.pdf`;
     await mkdir(policyDocumentDirectory, { recursive: true });
     await writeFile(
@@ -130,9 +133,7 @@ describe("GET /api/policies/:id/document", () => {
     });
 
     try {
-      const response = await request(app)
-        .get("/api/policies/5/document")
-        .set("Cookie", accessCookie("admin"));
+      const response = await request(app).get("/api/policies/5/document");
 
       expect(response.status).toBe(200);
       expect(response.headers["content-type"]).toMatch(/^application\/pdf/);
@@ -157,18 +158,10 @@ describe("GET /api/policies/:id/document", () => {
     expect(response.body.message).toBe("Policy document not found");
   });
 
-  it("requires policy access to retrieve a document", async () => {
-    const unauthenticated = await request(app).get(
-      "/api/policies/5/document",
-    );
-    pool.query.mockResolvedValueOnce({ rows: [staffWithoutAccess] });
-    const unauthorized = await request(app)
-      .get("/api/policies/5/document")
-      .set("Cookie", accessCookie("staff"));
-
-    expect(unauthenticated.status).toBe(401);
-    expect(unauthorized.status).toBe(403);
-    expect(pool.query).toHaveBeenCalledOnce();
+  it("rejects invalid public document IDs", async () => {
+    const response = await request(app).get("/api/policies/invalid/document");
+    expect(response.status).toBe(400);
+    expect(pool.query).not.toHaveBeenCalled();
   });
 });
 

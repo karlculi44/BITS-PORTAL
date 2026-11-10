@@ -37,7 +37,7 @@ function PublicHeader() {
         <nav className="public-nav" aria-label="Primary navigation">
           <NavLink to="/" end className={navClass}>Home</NavLink>
           <NavLink to="/about" className={navClass}>About</NavLink>
-          <span className="public-nav-link" aria-disabled="true">Policies</span>
+          <NavLink to="/policy-library" className={navClass}>Policies</NavLink>
           <span className="public-nav-link" aria-disabled="true">BITS Organization</span>
         </nav>
         <div className="public-header-actions">

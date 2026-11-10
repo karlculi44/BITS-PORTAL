@@ -6,7 +6,12 @@ import { requestAuditContext } from "../services/auditLogService.js";
 
 export const getAllPoliciesController = asyncHandler(async (req, res) => {
   const policies = await policyService.getAllPolicies();
-  res.status(200).json(policies);
+  res.status(200).json(
+    policies.map((policy) => ({
+      ...policy,
+      file: typeof policy.file === "string" ? policy.file.split(/[\\/]/).pop() : policy.file,
+    })),
+  );
 });
 
 export const getPolicyDocumentController = asyncHandler(async (req, res, next) => {

@@ -22,3 +22,10 @@ topology is known; never trust arbitrary forwarded headers.
 
 `GET /api/audit-logs` is read-only and requires an active administrator. Date
 filters use client-supplied UTC bounds corresponding to the browser's local day.
+
+Policy categories (`GET /api/categories?type=policy`), the policy list
+(`GET /api/policies`), and managed PDFs (`GET /api/policies/:id/document`) are
+public. All existing and future policies are therefore publicly accessible.
+Policy creation, modification, and deletion remain restricted to authorized
+users. Documents are served only through the controlled PDF endpoint; the list
+does not expose filesystem paths.

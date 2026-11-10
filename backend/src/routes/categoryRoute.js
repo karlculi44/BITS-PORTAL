@@ -19,7 +19,7 @@ import verifyToken from "../middlewares/verifyToken.js";
 const router = Router();
 
 const authorizeCategoryListRead = (req, res, next) => {
-  if (req.query.type === "service") return next();
+  if (req.query.type === "service" || req.query.type === "policy") return next();
 
   return verifyToken(req, res, (error) => {
     if (error) return next(error);
