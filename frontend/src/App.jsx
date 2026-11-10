@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import PublicLandingPage from "./pages/PublicLandingPage";
+import AboutPage from "./pages/AboutPage";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Policies from "./pages/Policies";
@@ -18,23 +19,27 @@ import ScrollProgress from "./components/ScrollProgress";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
 
+const publicRoutes = [
+  { path: "/", element: <PublicLandingPage /> },
+  { path: "/about", element: <AboutPage /> },
+  { path: "/login", element: <Login /> },
+  { path: "/unauthorized", element: <Placeholder name="Unauthorized" /> },
+];
+
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <PageTransition>
-          <ScrollToTop />
-          <NetworkBackground />
-          <ScrollProgress />
-          <Toaster position="top-right" />
+        <ScrollToTop />
+        <NetworkBackground />
+        <ScrollProgress />
+        <Toaster position="top-right" />
+        <PageTransition publicRoutes={publicRoutes}>
           <Routes>
             <Route element={<PublicLayout />}>
-              <Route path="/" element={<PublicLandingPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/unauthorized"
-                element={<Placeholder name="Unauthorized" />}
-              />
+              {publicRoutes.map((route) => (
+                <Route key={route.path} path={route.path} element={route.element} />
+              ))}
             </Route>
             <Route
               element={

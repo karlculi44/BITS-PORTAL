@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
+import { PageTransitionContext } from "../components/pageTransitionContext";
 
 const getErrorMessage = (error) => {
   const data = error.response?.data;
@@ -14,6 +15,7 @@ const getErrorMessage = (error) => {
 
 function Login() {
   const navigate = useNavigate();
+  const transition = useContext(PageTransitionContext);
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +44,11 @@ function Login() {
     try {
       await login({ username: username.trim(), password });
       toast.success("Login successful");
-      navigate("/dashboard");
+      if (transition) {
+        transition.navigateWithTransition("/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

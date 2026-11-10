@@ -452,7 +452,6 @@ select option {
   flex: 1;
   flex-direction: column;
   overflow-x: clip;
-  animation: public-page-fade-in 500ms ease-out;
   background:
     radial-gradient(ellipse at 50% 40%, transparent 42%, color-mix(in srgb, var(--app-text) 4%, transparent) 100%),
     radial-gradient(ellipse at 86% 32%, color-mix(in srgb, var(--app-primary) 7%, transparent), transparent 34rem),
@@ -476,25 +475,23 @@ select option {
   flex-direction: column;
 }
 
-.public-site-content > * {
+.public-outlet-transition {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.public-outlet-transition > * {
   flex: 1;
 }
 
-.public-site-content > .login-page {
+.public-outlet-transition > .login-page {
   min-height: 0;
 }
 
 .public-portal > main {
   flex: 1;
-}
-
-@keyframes public-page-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .public-header {

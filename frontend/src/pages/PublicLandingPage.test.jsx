@@ -13,6 +13,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { AuthContext } from "../context/authContextValue";
 import { ThemeProvider } from "../context/ThemeProvider";
 import Sidebar from "../components/Sidebar";
+import PublicHeader from "../components/PublicHeader";
 import { useAuth } from "../hooks/useAuth";
 import * as authService from "../services/authService";
 import { getAccessToken, setAccessToken } from "../services/api";
@@ -73,7 +74,7 @@ function renderLandingPage() {
     <MemoryRouter>
       <ThemeProvider>
         <AuthContext.Provider value={{ user: null, loading: false }}>
-          <PublicLandingPage />
+          <PublicHeader /><PublicLandingPage />
         </AuthContext.Provider>
       </ThemeProvider>
     </MemoryRouter>,
@@ -99,7 +100,7 @@ function renderLandingWithAuth() {
         <ThemeProvider>
           <AuthControls />
           <Routes>
-            <Route path="/" element={<PublicLandingPage />} />
+            <Route path="/" element={<><PublicHeader /><PublicLandingPage /></>} />
             <Route path="/login" element={<h1>Login page</h1>} />
             <Route path="/dashboard" element={<h1>Dashboard page</h1>} />
           </Routes>
@@ -140,7 +141,7 @@ describe("Public landing page", () => {
           <MemoryRouter initialEntries={[path]}>
             <ThemeProvider>
               <Routes>
-                <Route path="/" element={<PublicLandingPage />} />
+                <Route path="/" element={<><PublicHeader /><PublicLandingPage /></>} />
                 <Route path="*" element={<Sidebar open onClose={onClose} />} />
               </Routes>
             </ThemeProvider>
@@ -151,7 +152,6 @@ describe("Public landing page", () => {
 
       const homepageLink = screen.getByRole("link", { name: "Return to Homepage" });
       expect(homepageLink.getAttribute("href")).toBe("/");
-      expect(homepageLink.hasAttribute("data-page-transition")).toBe(true);
       fireEvent.click(homepageLink);
 
       expect(onClose).toHaveBeenCalledOnce();
@@ -198,7 +198,6 @@ describe("Public landing page", () => {
 
     const profileLink = screen.getByRole("link", { name: "Go to dashboard" });
     expect(profileLink.getAttribute("href")).toBe("/dashboard");
-    expect(profileLink.hasAttribute("data-page-transition")).toBe(true);
     expect(profileLink.querySelector("img").getAttribute("src")).toBe(
       `${window.location.origin}/api/users/images/avatar.png`,
     );
@@ -214,7 +213,7 @@ describe("Public landing page", () => {
       <MemoryRouter>
         <ThemeProvider>
           <AuthContext.Provider value={{ user, loading: false }}>
-            <PublicLandingPage />
+            <PublicHeader /><PublicLandingPage />
           </AuthContext.Provider>
         </ThemeProvider>
       </MemoryRouter>
@@ -356,7 +355,7 @@ describe("Public landing page", () => {
     ).toContain("bits.png");
     expect(screen.getByRole("link", { name: "Home" }).getAttribute("aria-current"))
       .toBe("page");
-    expect(screen.getByText("About").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("link", { name: "About" }).getAttribute("href")).toBe("/about");
     expect(screen.queryByRole("button", { name: /profile|account/i })).toBeNull();
 
     const permitLink = screen.getByRole("link", {

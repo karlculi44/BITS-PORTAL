@@ -3,20 +3,15 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  CircleUserRound,
   ExternalLink,
   ImageOff,
   Search,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { Tilt } from "@gfazioli/react-tilt";
 import "@gfazioli/react-tilt/styles.css";
-import ThemeToggle from "../components/ThemeToggle";
-import { useAuth } from "../hooks/useAuth";
 import bayawanCityLogo from "../assets/images/bayawan_city_logo.png";
-import bitsLogo from "../assets/images/bits.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
 import { getServices } from "../services/dashboardService";
 import {
@@ -171,24 +166,7 @@ function ServiceCard({ service, categoryName, className = "" }) {
   );
 }
 
-function ProfileImage({ user }) {
-  const [failedImage, setFailedImage] = useState("");
-  const image = user.profile_image ? getServiceImageUrl(user.profile_image) : "";
-
-  return image && image !== failedImage ? (
-    <img
-      src={image}
-      alt=""
-      onError={() => setFailedImage(image)}
-      className="public-profile-image"
-    />
-  ) : (
-    <CircleUserRound size={22} aria-hidden="true" />
-  );
-}
-
 function PublicLandingPage() {
-  const { user, loading: authLoading } = useAuth();
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -525,50 +503,6 @@ function PublicLandingPage() {
 
   return (
     <div className="public-portal">
-      <header className="public-header">
-        <div className="public-header-inner">
-          <Link to="/" className="public-brand" aria-label="BITS Portal home">
-            <img src={bitsLogo} alt="" />
-            <span className="public-brand-copy">
-              <strong>BITS Portal</strong>
-            </span>
-          </Link>
-          <nav className="public-nav" aria-label="Primary navigation">
-            <Link to="/" aria-current="page" className="public-nav-link active">
-              Home
-            </Link>
-            <span className="public-nav-link" aria-disabled="true">
-              About
-            </span>
-            <span className="public-nav-link" aria-disabled="true">
-              Policies
-            </span>
-            <span className="public-nav-link" aria-disabled="true">
-              BITS Organization
-            </span>
-          </nav>
-          <div className="public-header-actions">
-            {!authLoading &&
-              (user ? (
-                <Link
-                  to="/dashboard"
-                  data-page-transition
-                  className="public-profile-link"
-                  aria-label="Go to dashboard"
-                  title="Go to dashboard"
-                >
-                  <ProfileImage user={user} />
-                </Link>
-              ) : (
-                <Link to="/login" className="public-nav-link public-login-link">
-                  Login
-                </Link>
-              ))}
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
       <main>
         <section className="public-hero" aria-labelledby="welcome-heading">
           <div className="public-hero-inner">

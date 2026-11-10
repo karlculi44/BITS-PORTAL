@@ -1,23 +1,82 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { matchRoutes, useLocation, useNavigate, useNavigationType } from "react-router-dom";
+import { PageTransitionContext } from "./pageTransitionContext";
 
-function PageTransition({ children }) {
+function PageTransition({ children, publicRoutes }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const reduceMotion = useReducedMotion();
-  const [phase, setPhase] = useState("idle");
+  const [transition, setTransition] = useState({ phase: "idle", kind: null });
+  const [pageKey, setPageKey] = useState(0);
   const pending = useRef(null);
+  const revealedLocation = useRef(null);
+  const nextPageKey = useRef(0);
+  const phase =
+    transition.phase === "navigating" && location.key !== transition.fromKey
+      ? "revealing"
+      : transition.phase;
 
   useEffect(() => {
     if (pending.current && pending.current.locationKey !== location.key) {
       pending.current = null;
-      setPhase("idle");
+      setTransition({ phase: "idle", kind: null });
+    } else if (phase === "revealing" && revealedLocation.current) {
+      if (
+        revealedLocation.current.key &&
+        revealedLocation.current.key !== location.key &&
+        navigationType === "POP"
+      ) {
+        setTransition({ phase: "idle", kind: null });
+      } else if (location.key !== revealedLocation.current.fromKey) {
+        revealedLocation.current.key = location.key;
+      }
     }
-  }, [location.key]);
+  }, [location.key, navigationType, phase]);
+
+  const startTransition = (destination, allowDuringReveal = false, adminHome = false) => {
+    if (
+      destination.origin !== window.location.origin ||
+      destination.pathname === location.pathname
+    ) {
+      return false;
+    }
+
+    if (pending.current || transition.phase !== "idle") {
+      if (!allowDuringReveal || phase !== "revealing") return true;
+    }
+
+    const isPublicSource = !!matchRoutes(publicRoutes, location.pathname);
+    const isWipe =
+      (isPublicSource && destination.pathname === "/dashboard") ||
+      ((adminHome || location.pathname === "/dashboard") && destination.pathname === "/");
+    const isPublicNavigation =
+      isPublicSource &&
+      matchRoutes(publicRoutes, destination.pathname);
+
+    if ((!isWipe && !isPublicNavigation) || reduceMotion) return false;
+
+    pending.current = {
+      to: `${destination.pathname}${destination.search}${destination.hash}`,
+      locationKey: location.key,
+    };
+    revealedLocation.current = null;
+    setTransition({
+      phase: "covering",
+      kind: isWipe ? "wipe" : "fade",
+      pageKey: ++nextPageKey.current,
+    });
+    return true;
+  };
+
+  const navigateWithTransition = (to) => {
+    const destination = new URL(to, window.location.origin);
+    if (!startTransition(destination, true)) navigate(to);
+  };
 
   const handleClick = (event) => {
-    const link = event.target.closest("a[data-page-transition]");
+    const link = event.target.closest("a[href]");
     if (
       !link ||
       event.defaultPrevented ||
@@ -32,46 +91,57 @@ function PageTransition({ children }) {
       return;
     }
 
-    if (pending.current) {
+    if (startTransition(new URL(link.href, window.location.href), false, link.hasAttribute("data-admin-home"))) {
       event.preventDefault();
-      return;
     }
-    if (reduceMotion) return;
-
-    event.preventDefault();
-    pending.current = {
-      to: link.getAttribute("href"),
-      locationKey: location.key,
-    };
-    setPhase("covering");
   };
 
-  const handleAnimationComplete = () => {
-    if (phase === "covering" && pending.current) {
-      const { to } = pending.current;
+  const handleAnimationComplete = (definition) => {
+    if (transition.phase === "covering" && pending.current) {
+      if (
+        (transition.kind === "fade" && definition.opacity !== 0) ||
+        (transition.kind === "wipe" && definition.opacity !== 1)
+      ) return;
+      const { to, locationKey } = pending.current;
       pending.current = null;
+      revealedLocation.current = { fromKey: locationKey, key: null };
+      setTransition({ ...transition, phase: "navigating", fromKey: locationKey });
       navigate(to);
-      setPhase("revealing");
     } else if (phase === "revealing") {
-      setPhase("idle");
+      if (
+        (transition.kind === "fade" && definition.opacity !== 1) ||
+        (transition.kind === "wipe" && definition.opacity !== 0)
+      ) return;
+      revealedLocation.current = null;
+      if (transition.kind === "fade") setPageKey(transition.pageKey);
+      setTransition({ phase: "idle", kind: null });
     }
   };
 
   return (
     <div onClickCapture={handleClick}>
-      {children}
-      {phase !== "idle" && (
+      <PageTransitionContext.Provider value={{
+        kind: transition.kind,
+        phase,
+        pageKey,
+        nextPageKey: transition.pageKey,
+        onAnimationComplete: handleAnimationComplete,
+        navigateWithTransition,
+      }}>
+        {children}
+      </PageTransitionContext.Provider>
+      {transition.kind === "wipe" && (
         <motion.div
           aria-hidden="true"
           className="page-transition"
           initial={{ x: "-100%", opacity: 1 }}
           animate={
-            phase === "covering"
+            phase !== "revealing"
               ? { x: "0%", opacity: 1 }
               : { x: "0%", opacity: 0 }
           }
           transition={{
-            duration: phase === "covering" ? 0.38 : 0.3,
+            duration: transition.phase === "covering" ? 0.38 : 0.3,
             ease: [0.65, 0, 0.35, 1],
           }}
           onAnimationComplete={handleAnimationComplete}

@@ -73,7 +73,7 @@ function Sidebar({ open, onClose }) {
         <div className="space-y-1 border-t border-slate-200 p-3">
           <Link
             to="/"
-            data-page-transition
+            data-admin-home
             onClick={onClose}
             className="sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-700"
           >
