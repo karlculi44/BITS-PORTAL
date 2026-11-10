@@ -1,0 +1,36 @@
+.logo {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--app-text-secondary);
+}
+
+.logo img {
+  display: block;
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.logo--circular img {
+  width: 99.7%;
+  height: 99.7%;
+}
+
+.logo.service-logo-preview {
+  width: 9rem;
+  height: 9rem;
+}
+
+.logo.admin-brand-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+}

@@ -3,7 +3,8 @@ import { CircleUserRound } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
-import bitsLogo from "../assets/images/bits.png";
+import bitsLogo from "../assets/images/bits-trimmed.png";
+import Logo from "./Logo";
 import { getServiceImageUrl } from "../services/serviceService";
 
 function ProfileImage({ user }) {
@@ -31,7 +32,7 @@ function PublicHeader() {
     <header className="public-header">
       <div className="public-header-inner">
         <Link to="/" className="public-brand" aria-label="BITS Portal home">
-          <img src={bitsLogo} alt="" />
+          <Logo src={bitsLogo} alt="" className="public-brand-logo" />
           <span className="public-brand-copy"><strong>BITS Portal</strong></span>
         </Link>
         <nav className="public-nav" aria-label="Primary navigation">

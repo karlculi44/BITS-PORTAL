@@ -1,4 +1,12 @@
 import api from "./api";
+import bitsLogo from "../assets/images/bits-trimmed.png";
+
+export const DEFAULT_SERVICE_LOGO = "bits-default";
+
+export const getServiceLogoUrl = (image) =>
+  !image?.trim() || image === DEFAULT_SERVICE_LOGO
+    ? bitsLogo
+    : getServiceImageUrl(image);
 
 export const getServiceImageUrl = (image) => {
   if (!image?.trim()) return "";

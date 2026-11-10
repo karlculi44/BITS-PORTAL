@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { tooltip } from "./tooltip";
 import { useModalTransition } from "../hooks/useModalTransition";
 import { createPolicy, updatePolicy } from "../services/policyService";
+import Modal from "./Modal";
 
 const maxPolicyDocumentSize = 10 * 1024 * 1024;
 const fieldClass =
@@ -32,47 +33,12 @@ function PolicyModal({ policy, categories, onClose, onSaved }) {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const dialogRef = useRef(null);
   const documentInputRef = useRef(null);
   const { isClosing, closeWithTransition } = useModalTransition();
   const isEditing = !!policy;
 
-  useEffect(() => {
-    const previousFocus = document.activeElement;
-    dialogRef.current?.focus();
-    return () => previousFocus?.focus();
-  }, []);
-
   const close = () => {
     if (!submittingRef.current) closeWithTransition(onClose);
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
-    }
-    if (event.key !== "Tab") return;
-    const focusable = dialogRef.current.querySelectorAll(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable.length) {
-      event.preventDefault();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (
-      event.shiftKey &&
-      (document.activeElement === first ||
-        document.activeElement === dialogRef.current)
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   };
 
   const selectDocument = (file) => {
@@ -145,24 +111,13 @@ function PolicyModal({ policy, categories, onClose, onSaved }) {
   });
 
   return (
-    <div
-      className={`modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 ${
-        isClosing ? "modal-closing" : ""
-      }`}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) close();
-      }}
+    <Modal
+      titleId="policy-modal-title"
+      descriptionId="policy-modal-description"
+      className="max-w-2xl bg-slate-50"
+      isClosing={isClosing}
+      onClose={close}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="policy-modal-title"
-        aria-describedby="policy-modal-description"
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-slate-50 p-6 shadow-xl"
-      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2
@@ -335,8 +290,7 @@ function PolicyModal({ policy, categories, onClose, onSaved }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

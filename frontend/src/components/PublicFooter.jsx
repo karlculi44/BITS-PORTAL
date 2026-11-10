@@ -1,8 +1,9 @@
 import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import bayawanCityLogo from "../assets/images/bayawan_city_logo.png";
-import bitsLogo from "../assets/images/bits.png";
+import bayawanCityLogo from "../assets/images/bayawan_city_logo-trimmed.png";
+import bitsLogo from "../assets/images/bits-trimmed.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
+import Logo from "./Logo";
 
 function PublicFooter() {
   const currentYear = new Date().getFullYear();
@@ -15,18 +16,11 @@ function PublicFooter() {
             BITS Portal
           </h2>
           <div className="public-footer-logos" aria-label="Organization logos">
-            <Link to="/" className="public-footer-logo" aria-label="BITS Portal home">
-              <img src={bitsLogo} alt="BITS Portal" />
+            <Link to="/" aria-label="BITS Portal home">
+              <Logo className="public-footer-logo" src={bitsLogo} alt="BITS Portal" />
             </Link>
-            <span className="public-footer-logo">
-              <img src={bayawanCityLogo} alt="Bayawan City seal" />
-            </span>
-            <span className="public-footer-logo">
-              <img
-                src={informationTechnologyLogo}
-                alt="Information Technology Section"
-              />
-            </span>
+            <Logo className="public-footer-logo" src={bayawanCityLogo} alt="Bayawan City seal" />
+            <Logo className="public-footer-logo" src={informationTechnologyLogo} alt="Information Technology Section" />
           </div>
           <p className="public-footer-tagline">
             Bayawan City&apos;s digital services, connected in one place.

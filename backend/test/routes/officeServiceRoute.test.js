@@ -53,7 +53,7 @@ describe("GET /api/services", () => {
         title: "Transcript Request",
         url: "https://example.com/transcript",
         description: "Request an official transcript",
-        image: null,
+        image: "bits-default",
         sort_order: 0,
         category_id: 3,
       },
@@ -115,7 +115,7 @@ describe("POST /api/services", () => {
     expect(pool.query.mock.calls[1][1]).toEqual([
       validInput.title,
       validInput.url,
-      null,
+      "bits-default",
       validInput.description,
       validInput.category_id,
     ]);

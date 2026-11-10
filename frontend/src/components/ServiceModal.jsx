@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { ImageOff, X } from "lucide-react";
+import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { tooltip } from "./tooltip";
 import { useModalTransition } from "../hooks/useModalTransition";
+import Modal from "./Modal";
+import Logo from "./Logo";
 import {
   createService,
-  getServiceImageUrl,
+  DEFAULT_SERVICE_LOGO,
+  getServiceLogoUrl,
   getServiceCategories,
   updateService,
 } from "../services/serviceService";
@@ -38,11 +41,9 @@ function ServiceModal({ service, onClose, onSaved }) {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryError, setCategoryError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [failedImage, setFailedImage] = useState("");
   const [imageSelection, setImageSelection] = useState(null);
   const [draggingImage, setDraggingImage] = useState(false);
   const submittingRef = useRef(false);
-  const dialogRef = useRef(null);
   const { isClosing, closeWithTransition } = useModalTransition();
   const imageInputRef = useRef(null);
   const previewUrlRef = useRef(null);
@@ -54,7 +55,7 @@ function ServiceModal({ service, onClose, onSaved }) {
   const imagePreview =
     imageSelection?.serviceId === currentServiceId
       ? imageSelection.previewUrl
-      : getServiceImageUrl(service?.image);
+      : getServiceLogoUrl(service?.image);
 
   useEffect(() => {
     reset(formValues(service));
@@ -94,38 +95,8 @@ function ServiceModal({ service, onClose, onSaved }) {
     };
   }, []);
 
-  useEffect(() => {
-    const previousFocus = document.activeElement;
-    dialogRef.current?.focus();
-    return () => previousFocus?.focus();
-  }, []);
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Escape" && !submittingRef.current) {
-      event.preventDefault();
-      closeWithTransition(onClose);
-    }
-    if (event.key !== "Tab") return;
-    const focusable = dialogRef.current.querySelectorAll(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable.length) {
-      event.preventDefault();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (
-      event.shiftKey &&
-      (document.activeElement === first ||
-        document.activeElement === dialogRef.current)
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+  const close = () => {
+    if (!submittingRef.current) closeWithTransition(onClose);
   };
 
   const submitService = async (form) => {
@@ -185,32 +156,19 @@ function ServiceModal({ service, onClose, onSaved }) {
       file,
       previewUrl,
     });
-    setFailedImage("");
     clearErrors("image");
   };
 
   const imageField = register("image");
 
   return (
-    <div
-      className={`modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 ${
-        isClosing ? "modal-closing" : ""
-      }`}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !submittingRef.current)
-          closeWithTransition(onClose);
-      }}
+    <Modal
+      titleId="service-modal-title"
+      descriptionId="service-modal-description"
+      className="max-w-3xl bg-white"
+      isClosing={isClosing}
+      onClose={close}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="service-modal-title"
-        aria-describedby="service-modal-description"
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
-      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2
@@ -412,25 +370,11 @@ function ServiceModal({ service, onClose, onSaved }) {
                       : "border-slate-300 bg-slate-50"
                   }`}
                 >
-                  {imagePreview && imagePreview !== failedImage ? (
-                    <img
-                      src={imagePreview}
-                      alt="Service logo preview"
-                      onError={() => setFailedImage(imagePreview)}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-center text-sm text-slate-500">
-                      <ImageOff
-                        size={24}
-                        aria-hidden="true"
-                        className="mx-auto mb-2"
-                      />
-                      {imagePreview && imagePreview === failedImage
-                        ? "Unable to load image preview."
-                        : "No logo selected."}
-                    </div>
-                  )}
+                  <Logo
+                    src={imagePreview}
+                    alt="Service logo preview"
+                    className="service-logo-preview"
+                  />
                   <input
                     {...imageField}
                     onChange={(event) => {
@@ -453,12 +397,12 @@ function ServiceModal({ service, onClose, onSaved }) {
                     disabled={submitting}
                     className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
-                    {selectedImage || service?.image
+                    {selectedImage || (service?.image && service.image !== DEFAULT_SERVICE_LOGO)
                       ? "Choose another image"
                       : "Choose image"}
                   </button>
                   <p className="mt-2 text-xs text-slate-500">
-                    PNG, JPG, JPEG, or WebP. Maximum size: 2 MB.
+                    PNG, JPG, JPEG, or WebP. Maximum size: 2 MB. BITS logo is used by default.
                   </p>
                 </div>
                 {errors.image && (
@@ -496,8 +440,7 @@ function ServiceModal({ service, onClose, onSaved }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

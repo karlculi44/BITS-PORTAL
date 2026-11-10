@@ -54,7 +54,10 @@ describe("officeOfferingService", () => {
 
     await expect(createService(serviceInput)).resolves.toBe(service);
     expect(officeServiceModel.getCategoryById).toHaveBeenCalledWith(3);
-    expect(officeServiceModel.insertService).toHaveBeenCalledWith(serviceInput);
+    expect(officeServiceModel.insertService).toHaveBeenCalledWith({
+      ...serviceInput,
+      image: "bits-default",
+    });
   });
 
   it("rejects a category that does not exist", async () => {

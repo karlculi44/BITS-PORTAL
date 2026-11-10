@@ -1,5 +1,6 @@
 import { ArrowDown, Compass, Eye, Layers3, Target } from "lucide-react";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
+import Logo from "../components/Logo";
 import "./AboutPage.css";
 
 const objectives = [
@@ -59,9 +60,7 @@ function AboutPage() {
                 Bayawan City through the work of its Information Technology Section.
               </p>
             </div>
-            <div className="about-logo">
-              <img src={informationTechnologyLogo} alt="Information Technology Section logo" />
-            </div>
+            <Logo className="about-logo" src={informationTechnologyLogo} alt="Information Technology Section logo" />
           </section>
 
           <div className="about-purpose">

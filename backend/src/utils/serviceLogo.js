@@ -13,6 +13,8 @@ export const serviceLogoDirectory = path.join(
   "services",
 );
 
+export const defaultServiceLogo = "bits-default";
+
 const serviceLogoFilenamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:png|jpe?g|webp)$/i;
 

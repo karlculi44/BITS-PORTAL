@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { House, LogOut, PanelsTopLeft } from "lucide-react";
+import { House, LogOut } from "lucide-react";
+import Logo from "./Logo";
 import { useAuth } from "../hooks/useAuth";
 import { canViewNavItem, navItems } from "./navItems";
 
@@ -34,9 +35,7 @@ function Sidebar({ open, onClose }) {
         }`}
       >
         <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            <PanelsTopLeft size={20} aria-hidden="true" />
-          </div>
+          <Logo alt="" className="admin-brand-logo" />
           <div>
             <p className="text-sm font-bold tracking-wide text-slate-800">
               BITS Portal

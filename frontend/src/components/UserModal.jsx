@@ -6,6 +6,7 @@ import { tooltip } from "./tooltip";
 import { createUser, updateUser } from "../services/userService";
 import { getServiceImageUrl } from "../services/serviceService";
 import { useModalTransition } from "../hooks/useModalTransition";
+import Modal from "./Modal";
 
 const fieldClass =
   "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50";
@@ -60,7 +61,6 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [failedImage, setFailedImage] = useState("");
   const submittingRef = useRef(false);
-  const dialogRef = useRef(null);
   const imageInputRef = useRef(null);
   const { isClosing, closeWithTransition } = useModalTransition();
 
@@ -79,43 +79,13 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
   }, [user, reset]);
 
   useEffect(() => {
-    const previousFocus = document.activeElement;
-    dialogRef.current?.focus();
-    return () => previousFocus?.focus();
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Escape" && !submittingRef.current) {
-      event.preventDefault();
-      closeWithTransition(onClose);
-    }
-    if (event.key !== "Tab") return;
-    const focusable = dialogRef.current.querySelectorAll(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable.length) {
-      event.preventDefault();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (
-      event.shiftKey &&
-      (document.activeElement === first ||
-        document.activeElement === dialogRef.current)
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+  const close = () => {
+    if (!submittingRef.current) closeWithTransition(onClose);
   };
 
   const selectImage = (file) => {
@@ -216,25 +186,13 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
   };
 
   return (
-    <div
-      className={`modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 ${
-        isClosing ? "modal-closing" : ""
-      }`}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !submittingRef.current)
-          closeWithTransition(onClose);
-      }}
+    <Modal
+      titleId="user-modal-title"
+      descriptionId="user-modal-description"
+      className="max-w-md bg-white"
+      isClosing={isClosing}
+      onClose={close}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-modal-title"
-        aria-describedby="user-modal-description"
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-        className="max-h-full w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
-      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2
@@ -462,8 +420,7 @@ function UserModal({ user, isSelf = false, onClose, onSaved }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

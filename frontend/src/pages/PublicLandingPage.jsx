@@ -4,20 +4,20 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  ImageOff,
   Search,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Tilt } from "@gfazioli/react-tilt";
 import "@gfazioli/react-tilt/styles.css";
-import bayawanCityLogo from "../assets/images/bayawan_city_logo.png";
+import bayawanCityLogo from "../assets/images/bayawan_city_logo-trimmed.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
+import Logo from "../components/Logo";
 import { usePageLoading } from "../hooks/usePageLoading";
 import { getServices } from "../services/dashboardService";
 import {
   getServiceCategories,
-  getServiceImageUrl,
+  getServiceLogoUrl,
 } from "../services/serviceService";
 
 const PAGE_SIZE_OPTIONS = [6, 9, 12];
@@ -100,22 +100,10 @@ const isExternalHttpUrl = (value) => {
 };
 
 function ServiceImage({ image, title }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!image?.trim() || failed) {
-    return (
-      <span className="public-service-image public-service-image-fallback">
-        <ImageOff size={22} aria-hidden="true" />
-        <span className="sr-only">No service image available</span>
-      </span>
-    );
-  }
-
   return (
-    <img
-      src={getServiceImageUrl(image)}
+    <Logo
+      src={getServiceLogoUrl(image)}
       alt={`${title} logo`}
-      onError={() => setFailed(true)}
       className="public-service-image"
     />
   );
@@ -554,7 +542,7 @@ function PublicLandingPage() {
                   </p>
                   <div className="public-identity-logos">
                     <div className="public-identity-logo">
-                      <img src={bayawanCityLogo} alt="Bayawan City seal" />
+                      <Logo src={bayawanCityLogo} alt="Bayawan City seal" className="public-identity-logo-image" />
                       <span>Bayawan City</span>
                     </div>
                     <span
@@ -562,9 +550,10 @@ function PublicLandingPage() {
                       aria-hidden="true"
                     />
                     <div className="public-identity-logo">
-                      <img
+                      <Logo
                         src={informationTechnologyLogo}
                         alt="Information Technology Section logo"
+                        className="public-identity-logo-image"
                       />
                       <span>Information Technology Section</span>
                     </div>

@@ -352,7 +352,7 @@ describe("Public landing page", () => {
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "BITS Portal home" }).querySelector("img").getAttribute("src"),
-    ).toContain("bits.png");
+    ).toContain("bits-trimmed.png");
     expect(screen.getByRole("link", { name: "Home" }).getAttribute("aria-current"))
       .toBe("page");
     expect(screen.getByRole("link", { name: "About" }).getAttribute("href")).toBe("/about");
@@ -367,6 +367,9 @@ describe("Public landing page", () => {
     expect(permitLink.getAttribute("target")).toBe("_blank");
     expect(permitLink.getAttribute("rel")).toBe("noopener noreferrer");
     expect(screen.getByRole("img", { name: "Business Permit logo" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Water Billing logo" }).getAttribute("src")).toContain("bits-trimmed.png");
+    fireEvent.error(screen.getByRole("img", { name: "Business Permit logo" }));
+    expect(screen.getByRole("img", { name: "Business Permit logo" }).getAttribute("src")).toContain("bits-trimmed.png");
   });
 
   it("combines category and search filters", async () => {

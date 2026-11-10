@@ -29,3 +29,8 @@ public. All existing and future policies are therefore publicly accessible.
 Policy creation, modification, and deletion remain restricted to authorized
 users. Documents are served only through the controlled PDF endpoint; the list
 does not expose filesystem paths.
+
+New services without a logo store the shared `bits-default` image marker.
+The portal resolves this marker and legacy empty image values to its bundled
+BITS logo; custom image URLs and managed uploads retain their existing format.
+No default logo file is copied into service uploads.

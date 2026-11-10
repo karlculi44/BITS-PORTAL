@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ImageOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import ConfirmationModal from "../components/ConfirmationModal";
 import ServiceModal from "../components/ServiceModal";
@@ -10,10 +10,11 @@ import { useAuth } from "../hooks/useAuth";
 import { usePageLoading } from "../hooks/usePageLoading";
 import { getServices } from "../services/dashboardService";
 import SearchFilter from "../components/SearchFilter";
+import Logo from "../components/Logo";
 import {
   deleteService,
   getServiceCategories,
-  getServiceImageUrl,
+  getServiceLogoUrl,
 } from "../services/serviceService";
 
 const isHttpUrl = (value) => {
@@ -25,25 +26,10 @@ const isHttpUrl = (value) => {
 };
 
 function ServiceLogo({ image, title }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!image?.trim() || failed) {
-    return (
-      <div
-        aria-label="No service logo"
-        className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-100 text-slate-400"
-      >
-        <ImageOff size={20} aria-hidden="true" />
-      </div>
-    );
-  }
-
   return (
-    <img
-      src={getServiceImageUrl(image)}
+    <Logo
+      src={getServiceLogoUrl(image)}
       alt={`${title} logo`}
-      onError={() => setFailed(true)}
-      className="h-12 w-12 rounded-md border border-slate-200 object-contain"
     />
   );
 }

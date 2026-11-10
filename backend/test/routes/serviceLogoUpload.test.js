@@ -118,8 +118,36 @@ describe("service logo uploads", () => {
     pool.query.mockResolvedValueOnce({
       rows: [{ id: 9, image: filename }],
     });
+
     const servicesResponse = await request(app).get("/api/services");
     expect(servicesResponse.body[0].image).toBe(response.body.data.image);
+  });
+
+  it("persists and retrieves the shared default marker without storing an image", async () => {
+    let storedImage;
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ id: 3, type: "service" }] })
+      .mockImplementationOnce((query, values) => {
+        storedImage = values[2];
+        return { rows: [{ id: 9, title: values[0], image: storedImage }] };
+      });
+
+    const response = await request(app)
+      .post("/api/services")
+      .set("Cookie", accessCookie("admin"))
+      .field("title", "Transcript Request")
+      .field("url", "https://example.com/transcript")
+      .field("description", "Request an official transcript")
+      .field("category_id", "3");
+
+    expect(response.status).toBe(201);
+    expect(storedImage).toBe("bits-default");
+    expect(response.body.data.image).toBe(storedImage);
+    expect(await listLogos()).toEqual([...existingLogos]);
+
+    pool.query.mockResolvedValueOnce({ rows: [{ id: 9, image: storedImage }] });
+    const servicesResponse = await request(app).get("/api/services");
+    expect(servicesResponse.body[0].image).toBe(storedImage);
   });
 
   it.each([

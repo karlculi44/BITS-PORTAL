@@ -48,22 +48,10 @@
   line-height: 1.7;
 }
 
-.about-logo {
-  display: grid;
+.logo.about-logo {
   width: clamp(100px, 11vw, 150px);
-  aspect-ratio: 1;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid var(--app-border);
-  border-radius: 50%;
-  background: var(--app-surface);
+  height: clamp(100px, 11vw, 150px);
   box-shadow: var(--app-shadow);
-}
-
-.about-logo img {
-  width: 82%;
-  height: 82%;
-  object-fit: contain;
 }
 
 .about-purpose {
@@ -269,8 +257,9 @@
     gap: 1rem;
   }
 
-  .about-logo {
+  .logo.about-logo {
     width: 80px;
+    height: 80px;
   }
 
   .about-purpose,

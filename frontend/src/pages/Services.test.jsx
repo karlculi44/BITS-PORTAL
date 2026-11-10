@@ -103,7 +103,7 @@ describe("Services page", () => {
     expect(serviceLink.getAttribute("href")).toBe("https://example.com/email");
     expect(serviceLink.getAttribute("target")).toBe("_blank");
     expect(serviceLink.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(screen.getByLabelText("No service logo")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Library logo" }).getAttribute("src")).toContain("bits-trimmed.png");
     expect(screen.getByText("No description available.")).toBeTruthy();
     expect(screen.getByText("No URL available.")).toBeTruthy();
 
@@ -116,7 +116,10 @@ describe("Services page", () => {
     expect(api.delete).not.toHaveBeenCalled();
 
     fireEvent.error(screen.getByRole("img", { name: "Email logo" }));
-    expect(screen.getAllByLabelText("No service logo")).toHaveLength(2);
+    expect(screen.getByRole("img", { name: "Email logo" }).getAttribute("src")).toContain("bits-trimmed.png");
+    fireEvent.click(screen.getByRole("button", { name: "Grid View" }));
+    expect(screen.getByRole("img", { name: "Library logo" }).getAttribute("src")).toContain("bits-trimmed.png");
+    expect(screen.getByRole("img", { name: "Email logo" }).parentElement.classList.contains("logo")).toBe(true);
   });
 
   it("shows an empty state for an empty list", async () => {
@@ -345,6 +348,7 @@ describe("Services page", () => {
       fireEvent.change(screen.getByLabelText("Service Logo"), {
         target: { files: [logo] },
       });
+
       expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("blob:service-logo-preview");
       api.get.mockImplementation((path) => path === "/services"
         ? Promise.resolve({ data: [service, { ...service, id: 4, title: "Portal" }] })
@@ -366,6 +370,21 @@ describe("Services page", () => {
       expect(await screen.findByText("Portal")).toBeTruthy();
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(toast.success).toHaveBeenCalledWith("Service created successfully.");
+    });
+
+    it("previews the default logo and creates a service without uploading it", async () => {
+      api.post.mockResolvedValue({ data: {} });
+      renderApp();
+      fireEvent.click(await screen.findByRole("button", { name: "Add Service" }));
+      await screen.findByRole("option", { name: "Tools" });
+      expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toContain("bits-trimmed.png");
+      fireEvent.change(screen.getByLabelText("Category"), { target: { value: "2" } });
+      fireEvent.change(screen.getByLabelText("Service Name"), { target: { value: "Portal" } });
+      fireEvent.change(screen.getByLabelText("Service URL"), { target: { value: "https://example.com" } });
+      fireEvent.change(screen.getByLabelText("Summary"), { target: { value: "A portal" } });
+      fireEvent.click(screen.getByRole("button", { name: "Deploy Service" }));
+      await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+      expect(api.post.mock.calls[0][1].has("image")).toBe(false);
     });
 
     it("edits existing values and preserves the existing logo", async () => {
@@ -437,7 +456,7 @@ describe("Services page", () => {
       renderApp();
       fireEvent.click(await screen.findByRole("button", { name: "Add Service" }));
       await screen.findByRole("option", { name: "Tools" });
-      const dropTarget = screen.getByText("No logo selected.").parentElement;
+      const dropTarget = screen.getByRole("img", { name: "Service logo preview" }).parentElement.parentElement;
       const logo = new File(["png data"], "drop.png", { type: "image/png" });
       fireEvent.drop(dropTarget, { dataTransfer: { files: [logo] } });
       expect(screen.getByRole("img", { name: "Service logo preview" }).getAttribute("src")).toBe("blob:service-logo-preview");

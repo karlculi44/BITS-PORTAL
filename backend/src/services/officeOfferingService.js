@@ -2,6 +2,7 @@ import * as officeServiceModel from "../models/officeServiceModel.js";
 import AppError from "../utils/AppError.js";
 import { withAuditTransaction } from "./auditLogService.js";
 import {
+  defaultServiceLogo,
   formatServiceImage,
   formatServiceImages,
   isManagedServiceLogo,
@@ -26,11 +27,15 @@ export const createService = async (service, uploadedLogo, context) => {
       throw new AppError("Category must be a service category", 400);
     }
 
+    const serviceToCreate = {
+      ...service,
+      image: service.image?.trim() ? service.image : defaultServiceLogo,
+    };
     const createdService = context
       ? await withAuditTransaction(context, "Add", "Services",
-        (db) => officeServiceModel.insertService(service, db),
+        (db) => officeServiceModel.insertService(serviceToCreate, db),
         (created) => `Added service: ${created.title}`)
-      : await officeServiceModel.insertService(service);
+      : await officeServiceModel.insertService(serviceToCreate);
 
     if (createdService) {
       return formatServiceImage(createdService);
