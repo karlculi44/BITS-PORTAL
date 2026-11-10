@@ -33,7 +33,6 @@ function Topbar({ onMenuClick }) {
       </div>
       {user && (
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle />
           <div className="text-right">
             <p className="text-sm font-medium text-slate-800">
               {[user.first_name, user.last_name].filter(Boolean).join(" ")}
@@ -52,6 +51,7 @@ function Topbar({ onMenuClick }) {
               <User size={18} aria-hidden="true" />
             )}
           </div>
+          <ThemeToggle />
         </div>
       )}
     </header>

@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AuthContext } from "../context/authContextValue";
 import { ThemeProvider } from "../context/ThemeProvider";
 import { getUsers, updateUser } from "../services/userService";
 import Users from "../pages/Users";
+import PublicHeader from "./PublicHeader";
 import Topbar from "./Topbar";
 
 vi.mock("../services/userService", () => ({
@@ -85,6 +86,37 @@ describe("Topbar profile picture", () => {
     const { container } = renderTopbar(null);
     expect(container.querySelector("header img")).toBeNull();
     expect(container.querySelector("header .lucide-user")).toBeNull();
+  });
+
+  it.each([
+    { ...user, profile_image: "/api/users/images/avatar.png" },
+    user,
+  ])("keeps the profile before the theme toggle when navigating to admin", (currentUser) => {
+    const { container } = render(
+      <AuthContext.Provider value={{ user: currentUser, loading: false }}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={["/"]}>
+            <Routes>
+              <Route path="/" element={<PublicHeader />} />
+              <Route path="/dashboard" element={<Topbar onMenuClick={vi.fn()} />} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthContext.Provider>,
+    );
+
+    const publicProfile = screen.getByRole("link", { name: "Go to dashboard" });
+    const publicToggle = container.querySelector("header .public-theme-toggle");
+    expect(publicProfile.nextElementSibling).toBe(publicToggle);
+
+    fireEvent.click(publicProfile);
+
+    const adminToggle = container.querySelector("header .public-theme-toggle");
+    const adminProfile = currentUser.profile_image
+      ? container.querySelector("header img")
+      : container.querySelector("header .lucide-user");
+    expect(adminProfile.parentElement.nextElementSibling).toBe(adminToggle);
+    expect(screen.getByText("Alice Admin")).toBeTruthy();
   });
 
   it("updates the navbar after the signed-in user changes their picture", async () => {

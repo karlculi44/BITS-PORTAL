@@ -37,6 +37,11 @@ The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor
 prefers reduced motion, and the tilt does not capture touch gestures.
 
+The shared theme toggle uses a diagonal View Transition across the viewport.
+The saved theme is applied on subsequent visits; browsers without View
+Transitions and visitors who prefer reduced motion switch themes immediately.
+Repeated toggles are ignored until an active transition finishes.
+
 The backend accepts an image string but has no file-upload mechanism, so the
 admin modal accepts an image URL instead. Delete remains a visual placeholder
 and does not send requests.
