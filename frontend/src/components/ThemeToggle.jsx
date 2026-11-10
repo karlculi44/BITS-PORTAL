@@ -5,18 +5,20 @@ import { tooltip } from "./tooltip";
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
-  const Icon = isDark ? Moon : Sun;
-
+  const label = `Switch to ${isDark ? "light" : "dark"} mode`;
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={isDark}
+      aria-label={label}
       onClick={toggleTheme}
-      aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
-      aria-pressed={isDark}
-      {...tooltip(`Switch to ${isDark ? "light" : "dark"} mode`, "bottom")}
-      className="public-theme-toggle flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-blue-700"
+      {...tooltip(label, "bottom")}
+      className="theme-switch"
     >
-      <Icon size={18} aria-hidden="true" />
+      <Sun className="theme-switch-icon theme-switch-sun" size={14} aria-hidden="true" />
+      <Moon className="theme-switch-icon theme-switch-moon" size={14} aria-hidden="true" />
+      <span className="theme-switch-thumb" aria-hidden="true" />
     </button>
   );
 }

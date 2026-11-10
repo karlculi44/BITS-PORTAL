@@ -260,11 +260,11 @@ describe("Public landing page", () => {
     renderLandingPage();
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Switch to light mode" }));
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("light"));
     expect(screen.getByRole("heading", { name: "Welcome to BITS Portal" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "A city moving forward" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Switch to dark mode" }));
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
   });
 
@@ -503,7 +503,7 @@ describe("Public landing page", () => {
     renderLandingPage();
     await screen.findByText("Business Permit");
 
-    fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Switch to dark mode" }));
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(window.localStorage.getItem("bits-portal-theme")).toBe("dark");

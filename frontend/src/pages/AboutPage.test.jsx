@@ -86,9 +86,9 @@ describe("About page", () => {
     expect(screen.queryByTestId("wipe")).toBeNull();
 
     expect(document.documentElement.dataset.theme).toBe("light");
-    fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Switch to dark mode" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
-    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Switch to light mode" }));
     expect(document.documentElement.dataset.theme).toBe("light");
 
     fireEvent.click(screen.getByRole("link", { name: "Home" }));

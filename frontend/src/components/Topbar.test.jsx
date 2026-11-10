@@ -106,12 +106,12 @@ describe("Topbar profile picture", () => {
     );
 
     const publicProfile = screen.getByRole("link", { name: "Go to dashboard" });
-    const publicToggle = container.querySelector("header .public-theme-toggle");
+    const publicToggle = container.querySelector("header [role=switch]");
     expect(publicProfile.nextElementSibling).toBe(publicToggle);
 
     fireEvent.click(publicProfile);
 
-    const adminToggle = container.querySelector("header .public-theme-toggle");
+    const adminToggle = container.querySelector("header [role=switch]");
     const adminProfile = currentUser.profile_image
       ? container.querySelector("header img")
       : container.querySelector("header .lucide-user");

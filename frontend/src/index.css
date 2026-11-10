@@ -667,13 +667,114 @@ select option {
   outline-offset: 2px;
 }
 
-.public-header .public-theme-toggle {
-  color: var(--app-text-secondary);
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  width: 3.5rem;
+  height: 1.875rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffdf5, #eaf3ff);
+  box-shadow: inset 0 1px 2px rgb(23 43 77 / 0.12);
+  cursor: pointer;
 }
 
-.public-header .public-theme-toggle:hover {
-  background: var(--app-surface-muted);
-  color: var(--app-text);
+.theme-switch[aria-checked="true"] {
+  border-color: #344b69;
+  background: linear-gradient(180deg, #0b1424, #1b2c44);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid var(--app-primary-text);
+  outline-offset: 2px;
+}
+
+.theme-switch-icon {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.theme-switch-sun {
+  left: 0.5rem;
+  color: #d97706;
+  transform: translateY(-50%) scale(1.25);
+}
+
+.theme-switch-moon {
+  left: 2.125rem;
+  color: #64748b;
+}
+
+.theme-switch[aria-checked="true"] .theme-switch-sun {
+  color: #fbbf24;
+  transform: translateY(-50%) scale(1);
+}
+
+.theme-switch[aria-checked="true"] .theme-switch-moon {
+  color: #dbeafe;
+  transform: translateY(-50%) scale(1.25);
+}
+
+.theme-switch-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.1875rem;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 0.8);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0.12));
+  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.55), 0 1px 3px rgb(23 43 77 / 0.25);
+  backdrop-filter: blur(0.5px) saturate(1.15);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.theme-switch[aria-checked="true"] .theme-switch-thumb {
+  border-color: rgb(219 234 254 / 0.65);
+  background: linear-gradient(145deg, rgb(219 234 254 / 0.3), rgb(147 197 253 / 0.1));
+  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+  transform: translate(1.625rem, -50%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Keep the lens moving while the new theme is captured for the wipe. */
+  .theme-switch-thumb,
+  .theme-switch-icon,
+  html[data-theme-transition-capture="true"] .theme-switch-thumb,
+  html[data-theme-transition-capture="true"] .theme-switch-icon {
+    transition: transform 350ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch-thumb,
+  .theme-switch-icon {
+    transition: none !important;
+  }
+}
+
+/* During the wipe the switch is lifted into its own layer, showing the live
+   new state so its animation is visible rather than hidden by the snapshots. */
+html[data-theme-transition="true"] .theme-switch {
+  view-transition-name: theme-switch;
+}
+
+html[data-theme-transition="true"]::view-transition-old(theme-switch) {
+  display: none;
+}
+
+html[data-theme-transition="true"]::view-transition-new(theme-switch) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 .public-hero {
