@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 import { Tilt } from "@gfazioli/react-tilt";
 import "@gfazioli/react-tilt/styles.css";
 import ThemeToggle from "../components/ThemeToggle";
@@ -24,6 +25,10 @@ import {
 } from "../services/serviceService";
 
 const PAGE_SIZE_OPTIONS = [6, 9, 12];
+const SWIPE_TRANSITION = {
+  duration: 0.42,
+  ease: [0.22, 1, 0.36, 1],
+};
 
 function PaginationControls({
   position,
@@ -36,6 +41,7 @@ function PaginationControls({
   onPageSizeChange,
   onPrevious,
   onNext,
+  isTransitioning,
 }) {
   return (
     <div className={`public-pagination public-pagination-${position}`}>
@@ -64,7 +70,7 @@ function PaginationControls({
         <button
           type="button"
           onClick={onPrevious}
-          disabled={page <= 1}
+          disabled={isTransitioning || page <= 1}
           aria-label={`Previous page (${position})`}
         >
           <ChevronLeft size={17} aria-hidden="true" />
@@ -78,7 +84,7 @@ function PaginationControls({
         <button
           type="button"
           onClick={onNext}
-          disabled={page >= pageCount}
+          disabled={isTransitioning || page >= pageCount}
           aria-label={`Next page (${position})`}
         >
           <ChevronRight size={17} aria-hidden="true" />
@@ -196,6 +202,7 @@ function PublicLandingPage() {
   const gridRef = useRef(null);
   const incomingGridRef = useRef(null);
   const transitionId = useRef(0);
+  const transitionLock = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -226,6 +233,20 @@ function PublicLandingPage() {
       active = false;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = (event) => {
+      if (event.matches) {
+        transitionId.current += 1;
+        transitionLock.current = false;
+        setTransition(null);
+      }
+    };
+    preference.addEventListener("change", handleChange);
+    return () => preference.removeEventListener("change", handleChange);
+  }, []);
 
   const filteredServices = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
@@ -258,18 +279,33 @@ function PublicLandingPage() {
   );
 
   const updateSearch = (value) => {
+    transitionLock.current = false;
     setTransition(null);
     setSearchTerm(value);
     setCurrentPage(1);
   };
   const updateCategory = (value) => {
+    transitionLock.current = false;
     setTransition(null);
     setCategoryFilter(value);
     setCurrentPage(1);
   };
 
   const startTransition = (direction, nextPage, nextPageSize = pageSize) => {
+    if (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      transitionId.current += 1;
+      transitionLock.current = false;
+      setTransition(null);
+      setCurrentPage(nextPage);
+      setPageSize(nextPageSize);
+      return;
+    }
+
     const height = gridRef.current?.getBoundingClientRect().height ?? 0;
+    transitionLock.current = true;
     setTransition({
       id: transitionId.current + 1,
       direction,
@@ -289,7 +325,8 @@ function PublicLandingPage() {
     startTransition("size", 1, nextPageSize);
   };
 
-  const activeTransitionId = transition?.id;
+  const activeTransitionId =
+    transition?.direction === "size" ? transition.id : undefined;
   useEffect(() => {
     if (activeTransitionId === undefined) return undefined;
 
@@ -301,6 +338,9 @@ function PublicLandingPage() {
       );
     });
     const timerId = window.setTimeout(() => {
+      if (transitionId.current === activeTransitionId) {
+        transitionLock.current = false;
+      }
       setTransition((current) =>
         current?.id === activeTransitionId ? null : current,
       );
@@ -313,6 +353,7 @@ function PublicLandingPage() {
   }, [activeTransitionId]);
 
   const navigatePage = (direction) => {
+    if (transitionLock.current) return;
     const nextPage = visiblePage + (direction === "next" ? 1 : -1);
     if (nextPage < 1 || nextPage > pageCount) return;
     startTransition(direction, nextPage);
@@ -328,33 +369,55 @@ function PublicLandingPage() {
     onPageSizeChange: updatePageSize,
     onPrevious: () => navigatePage("previous"),
     onNext: () => navigatePage("next"),
+    isTransitioning: Boolean(transition),
   };
 
-  const renderServiceGrid = (servicesToRender, className, options = {}) => (
-    <ul
-      ref={options.incoming ? incomingGridRef : undefined}
-      id={options.incoming ? "public-service-grid" : undefined}
-      key={options.key}
-      className={`public-service-grid ${className}`}
-      aria-hidden={options.incoming ? undefined : true}
-      inert={options.incoming ? undefined : true}
-    >
-      {servicesToRender.map((service, index) => {
-        const curtainClass =
-          options.curtainFrom !== undefined && index >= options.curtainFrom
-            ? options.curtainClass
-            : "";
-        return (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            categoryName={categoryNames.get(String(service.category_id))}
-            className={curtainClass}
-          />
-        );
-      })}
-    </ul>
-  );
+  const renderServiceGrid = (servicesToRender, className, options = {}) => {
+    const swiping = transition && transition.direction !== "size";
+    const direction = transition?.direction === "next" ? 1 : -1;
+    return (
+      <motion.ul
+        ref={options.incoming ? incomingGridRef : undefined}
+        id={options.incoming ? "public-service-grid" : undefined}
+        key={options.key}
+        className={`public-service-grid ${className}`}
+        aria-hidden={options.incoming ? undefined : true}
+        inert={options.incoming ? undefined : true}
+        initial={
+          swiping ? { x: options.incoming ? `${direction * 100}%` : "0%" } : false
+        }
+        animate={
+          swiping ? { x: options.incoming ? "0%" : `${direction * -100}%` } : undefined
+        }
+        transition={SWIPE_TRANSITION}
+        onAnimationComplete={
+          options.incoming && swiping
+            ? () => {
+                if (transitionId.current === transition.id) {
+                  transitionLock.current = false;
+                  setTransition(null);
+                }
+              }
+            : undefined
+        }
+      >
+        {servicesToRender.map((service, index) => {
+          const curtainClass =
+            options.curtainFrom !== undefined && index >= options.curtainFrom
+              ? options.curtainClass
+              : "";
+          return (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              categoryName={categoryNames.get(String(service.category_id))}
+              className={curtainClass}
+            />
+          );
+        })}
+      </motion.ul>
+    );
+  };
 
   const renderPagination = (position) => (
     <PaginationControls position={position} {...paginationProps} />
@@ -435,7 +498,7 @@ function PublicLandingPage() {
       <div
         ref={gridRef}
         className={`public-service-grid-stage${transition ? " public-service-grid-stage-animating" : ""}`}
-        style={transition ? { height: transition.height } : undefined}
+        style={transition?.direction === "size" ? { height: transition.height } : undefined}
         aria-live="polite"
       >
         {transition &&

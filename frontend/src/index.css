@@ -1185,31 +1185,11 @@ select option {
 
 .public-service-grid-enter {
   z-index: 1;
-  animation: public-grid-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.public-service-grid-enter-next {
-  --grid-enter-x: 1.2rem;
-  --grid-exit-x: -1.2rem;
-}
-
-.public-service-grid-enter-previous {
-  --grid-enter-x: -1.2rem;
-  --grid-exit-x: 1.2rem;
 }
 
 .public-service-grid-exit {
   z-index: 0;
   pointer-events: none;
-  animation: public-grid-exit 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-.public-service-grid-exit-next {
-  --grid-exit-x: -1.2rem;
-}
-
-.public-service-grid-exit-previous {
-  --grid-exit-x: 1.2rem;
 }
 
 .public-service-grid-curtain {
@@ -1495,24 +1475,6 @@ a.public-service-card:hover {
 @keyframes public-cta-orbit {
   to {
     --public-cta-angle: 360deg;
-  }
-}
-
-@keyframes public-grid-enter {
-  from {
-    transform: translateX(var(--grid-enter-x, 0));
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes public-grid-exit {
-  to {
-    transform: translateX(var(--grid-exit-x, 0));
-    opacity: 0;
   }
 }
 

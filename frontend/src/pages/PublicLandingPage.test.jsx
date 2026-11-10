@@ -306,11 +306,11 @@ describe("Public landing page", () => {
   });
 
   it("disables and resets tilt when reduced motion is requested", async () => {
-    let motionChange;
+    const motionChanges = [];
     vi.stubGlobal("matchMedia", vi.fn((query) => ({
       matches: query === "(prefers-reduced-motion: reduce)",
       addEventListener: (event, listener) => {
-        if (query === "(prefers-reduced-motion: reduce)") motionChange = listener;
+        if (query === "(prefers-reduced-motion: reduce)") motionChanges.push(listener);
       },
       removeEventListener: vi.fn(),
     })));
@@ -330,14 +330,14 @@ describe("Public landing page", () => {
     expect(surface.style.transform).toContain("rotateX(0deg) rotateY(0deg)");
     expect(surface.querySelector("[data-tilt-glare]").style.opacity).toBe("0");
 
-    act(() => motionChange({ matches: false }));
+    act(() => motionChanges.forEach((listener) => listener({ matches: false })));
     fireEvent.mouseEnter(wrapper);
     fireEvent.mouseMove(wrapper, { clientX: 200, clientY: 0 });
     await waitFor(() => {
       const rotation = Number(surface.style.transform.match(/rotateY\(([-.\d]+)deg\)/)[1]);
       expect(rotation).toBeGreaterThan(5.8);
     });
-    act(() => motionChange({ matches: true }));
+    act(() => motionChanges.forEach((listener) => listener({ matches: true })));
     expect(surface.style.transform).toContain("rotateX(0deg) rotateY(0deg)");
     expect(surface.querySelector("[data-tilt-glare]").style.opacity).toBe("0");
   });
@@ -400,9 +400,20 @@ describe("Public landing page", () => {
     expect(document.querySelector(".public-service-grid-enter-next")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Previous page (bottom)" }).disabled,
-    ).toBe(false);
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Previous page (bottom)" }));
+    expect(screen.getAllByText("Page 2 of 2")).toHaveLength(2);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Previous page (bottom)" }).disabled)
+        .toBe(false),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Previous page (bottom)" }));
     expect(screen.getAllByText("Page 1 of 2")).toHaveLength(2);
+    expect(document.querySelector(".public-service-grid-enter-previous")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Next page (bottom)" }).disabled)
+        .toBe(false),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Next page (bottom)" }));
     expect(screen.getAllByText("Page 2 of 2")).toHaveLength(2);
 
@@ -435,6 +446,58 @@ describe("Public landing page", () => {
     expect(screen.getAllByText("Page 1 of 1")).toHaveLength(2);
     expect(screen.getByText("Water Billing")).toBeTruthy();
     expect(screen.queryByText("Business Permit")).toBeNull();
+  });
+
+  it("navigates immediately with reduced motion through both pagination controls", async () => {
+    vi.stubGlobal("matchMedia", vi.fn((query) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })));
+    renderLandingPage();
+    await screen.findByText("Business Permit");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next page (bottom)" }));
+    expect(screen.getAllByText("Page 2 of 2")).toHaveLength(2);
+    expect(document.querySelectorAll(".public-service-grid")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Previous page (top)" }));
+    expect(screen.getAllByText("Page 1 of 2")).toHaveLength(2);
+    expect(document.querySelectorAll(".public-service-grid")).toHaveLength(1);
+  });
+
+  it("cancels a swipe when filters change", async () => {
+    renderLandingPage();
+    await screen.findByText("Business Permit");
+    fireEvent.click(screen.getByRole("button", { name: "Next page (top)" }));
+    fireEvent.change(screen.getByLabelText("Search services"), {
+      target: { value: "business" },
+    });
+
+    expect(document.querySelectorAll(".public-service-grid")).toHaveLength(1);
+    expect(screen.getAllByText("Page 1 of 1")).toHaveLength(2);
+    expect(screen.getByText("Business Permit")).toBeTruthy();
+    expect(screen.getByText("Business Support")).toBeTruthy();
+    expect(screen.queryByText("City Service 7")).toBeNull();
+  });
+
+  it("cancels a swipe when reduced motion is enabled", async () => {
+    const motionChanges = [];
+    vi.stubGlobal("matchMedia", vi.fn((query) => ({
+      matches: false,
+      addEventListener: (event, listener) => {
+        if (query === "(prefers-reduced-motion: reduce)") motionChanges.push(listener);
+      },
+      removeEventListener: vi.fn(),
+    })));
+    renderLandingPage();
+    await screen.findByText("Business Permit");
+    fireEvent.click(screen.getByRole("button", { name: "Next page (top)" }));
+    expect(document.querySelectorAll(".public-service-grid")).toHaveLength(2);
+
+    act(() => motionChanges.forEach((listener) => listener({ matches: true })));
+    expect(document.querySelectorAll(".public-service-grid")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Previous page (bottom)" }).disabled)
+      .toBe(false);
   });
 
   it("uses the shared persistent theme toggle", async () => {
