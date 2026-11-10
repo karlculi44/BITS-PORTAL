@@ -717,12 +717,6 @@ function PublicLandingPage() {
         </section>
       </main>
 
-      <footer className="public-footer">
-        <div className="public-footer-inner">
-          <span>BITS Portal</span>
-          <span>Bayawan Information Technology Section</span>
-        </div>
-      </footer>
     </div>
   );
 }

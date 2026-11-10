@@ -447,7 +447,10 @@ select option {
 .public-portal {
   position: relative;
   isolation: isolate;
-  min-height: 100vh;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
   overflow-x: clip;
   animation: public-page-fade-in 500ms ease-out;
   background:
@@ -457,6 +460,32 @@ select option {
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--app-primary) 3%, transparent) 0 1px, transparent 1px 48px),
     var(--app-bg);
   color: var(--app-text);
+}
+
+.public-site-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.public-site-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.public-site-content > * {
+  flex: 1;
+}
+
+.public-site-content > .login-page {
+  min-height: 0;
+}
+
+.public-portal > main {
+  flex: 1;
 }
 
 @keyframes public-page-fade-in {
@@ -1447,23 +1476,102 @@ a.public-service-card:hover {
 }
 
 .public-footer {
-  border-top: 1px solid var(--app-border);
-  background: var(--app-surface);
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--app-primary) 24%, var(--app-border));
+  background:
+    radial-gradient(ellipse at 13% 0%, color-mix(in srgb, var(--app-primary) 9%, transparent), transparent 34rem),
+    linear-gradient(135deg, var(--app-surface), color-mix(in srgb, var(--app-primary-soft) 45%, var(--app-surface)));
 }
 
 .public-footer-inner {
-  display: flex;
-  min-height: 70px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  color: var(--app-text-muted);
-  font-size: 0.74rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(12rem, 0.8fr) minmax(14rem, 0.9fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-block: 2.75rem 2.25rem;
 }
 
-.public-footer-inner > span:first-child {
+.public-footer-heading {
+  margin: 0 0 1rem;
   color: var(--app-text-secondary);
+  font-size: 0.68rem;
   font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.public-footer-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.public-footer-logo {
+  display: grid;
+  width: 3.65rem;
+  height: 3.45rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--app-border) 82%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--app-surface) 85%, transparent);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+a.public-footer-logo:hover {
+  transform: translateY(-2px);
+  border-color: var(--app-primary);
+  background: var(--app-surface);
+}
+
+.public-footer-logo img {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: contain;
+}
+
+.public-footer-tagline,
+.public-footer-meta p,
+.public-footer-contact-note p {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.public-footer-tagline {
+  max-width: 20rem;
+  margin-top: 0.9rem;
+}
+
+.public-footer-meta p + p {
+  margin-top: 0.25rem;
+}
+
+.public-footer-meta p.public-footer-developer {
+  color: var(--app-text-secondary);
+}
+
+.public-footer-contact-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.public-footer-contact-icon {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--app-primary) 28%, var(--app-border));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--app-primary-soft) 76%, transparent);
+  color: var(--app-primary-text);
 }
 
 @property --public-cta-angle {
@@ -1682,8 +1790,23 @@ a.public-service-card:hover {
   }
 
   .public-footer-inner {
-    min-height: 64px;
-    font-size: 0.67rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.8rem;
+    padding-block: 2rem;
+    text-align: center;
+  }
+
+  .public-footer-logos,
+  .public-footer-contact-note {
+    justify-content: center;
+  }
+
+  .public-footer-contact-note {
+    align-items: center;
+  }
+
+  .public-footer-tagline {
+    margin-inline: auto;
   }
 }
 

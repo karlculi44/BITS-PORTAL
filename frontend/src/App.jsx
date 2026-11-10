@@ -10,27 +10,32 @@ import Users from "./pages/Users";
 import AuditLogs from "./pages/AuditLogs";
 import Placeholder from "./pages/Placeholder";
 import AdminLayout from "./layouts/AdminLayout";
+import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeProvider";
 import NetworkBackground from "./components/NetworkBackground";
 import ScrollProgress from "./components/ScrollProgress";
 import PageTransition from "./components/PageTransition";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <PageTransition>
+          <ScrollToTop />
           <NetworkBackground />
           <ScrollProgress />
           <Toaster position="top-right" />
           <Routes>
-            <Route path="/" element={<PublicLandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/unauthorized"
-              element={<Placeholder name="Unauthorized" />}
-            />
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<PublicLandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/unauthorized"
+                element={<Placeholder name="Unauthorized" />}
+              />
+            </Route>
             <Route
               element={
                 <ProtectedRoute allowedRoles={["admin", "staff"]}>
