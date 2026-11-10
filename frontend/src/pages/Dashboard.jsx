@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FolderTree, Info, ScrollText, Users } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { usePageLoading } from "../hooks/usePageLoading";
 import StatCard from "../components/StatCard";
 import CategoryDistributionChart from "../components/CategoryDistributionChart";
 import {
@@ -52,6 +53,7 @@ function Dashboard() {
   const [recentServicesError, setRecentServicesError] = useState("");
   const [recentServicesLoading, setRecentServicesLoading] = useState(true);
   const [recentServicesRetryCount, setRecentServicesRetryCount] = useState(0);
+  usePageLoading(loading || recentServicesLoading);
 
   const retryDashboard = () => {
     setData(null);

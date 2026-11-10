@@ -7,6 +7,7 @@ import SearchFilter from "../components/SearchFilter";
 import { tooltip } from "../components/tooltip";
 import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
+import { usePageLoading } from "../hooks/usePageLoading";
 import {
   deleteCategory,
   getCategories,
@@ -33,6 +34,7 @@ function Categories() {
   const [refresh, setRefresh] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [defaultUpdatingId, setDefaultUpdatingId] = useState(null);
+  usePageLoading(loading);
 
   useEffect(() => {
     let active = true;

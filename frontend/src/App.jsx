@@ -17,6 +17,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeProvider";
 import NetworkBackground from "./components/NetworkBackground";
 import ScrollProgress from "./components/ScrollProgress";
+import ScrollbarVisibility from "./components/ScrollbarVisibility";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -33,6 +34,7 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <ScrollbarVisibility />
         <NetworkBackground />
         <ScrollProgress />
         <Toaster position="top-right" />

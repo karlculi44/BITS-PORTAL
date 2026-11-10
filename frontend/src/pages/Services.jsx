@@ -7,6 +7,7 @@ import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
+import { usePageLoading } from "../hooks/usePageLoading";
 import { getServices } from "../services/dashboardService";
 import SearchFilter from "../components/SearchFilter";
 import {
@@ -110,9 +111,11 @@ function Services() {
   const [selectedService, setSelectedService] = useState(null);
   const [refresh, setRefresh] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [serviceToDelete, setServiceToDelete] = useState(null);
+  usePageLoading(loading || categoriesLoading);
 
   useEffect(() => {
     let active = true;
@@ -122,6 +125,9 @@ function Services() {
       })
       .catch(() => {
         if (active) setCategories([]);
+      })
+      .finally(() => {
+        if (active) setCategoriesLoading(false);
       });
     return () => {
       active = false;

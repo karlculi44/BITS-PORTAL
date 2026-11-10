@@ -13,6 +13,7 @@ import { Tilt } from "@gfazioli/react-tilt";
 import "@gfazioli/react-tilt/styles.css";
 import bayawanCityLogo from "../assets/images/bayawan_city_logo.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
+import { usePageLoading } from "../hooks/usePageLoading";
 import { getServices } from "../services/dashboardService";
 import {
   getServiceCategories,
@@ -181,6 +182,7 @@ function PublicLandingPage() {
   const incomingGridRef = useRef(null);
   const transitionId = useRef(0);
   const transitionLock = useRef(false);
+  usePageLoading(loading);
 
   useEffect(() => {
     let active = true;

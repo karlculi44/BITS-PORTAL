@@ -60,6 +60,22 @@ afterEach(() => {
 });
 
 describe("Services page", () => {
+  it("keeps the loading strip visible until both page requests settle", async () => {
+    let finishCategories;
+    api.get.mockImplementation((url) => {
+      if (url === "/categories") {
+        return new Promise((resolve) => { finishCategories = resolve; });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    renderApp();
+
+    expect(await screen.findByText("No services available.")).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Loading page" })).toBeTruthy();
+    finishCategories({ data: [] });
+    await waitFor(() => expect(screen.queryByRole("progressbar")).toBeNull());
+  });
+
   it("loads the API records in the dashboard", async () => {
     let resolveRequest;
     api.get.mockReturnValue(new Promise((resolve) => {

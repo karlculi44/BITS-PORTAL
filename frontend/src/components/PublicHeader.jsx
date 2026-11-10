@@ -38,7 +38,14 @@ function PublicHeader() {
           <NavLink to="/" end className={navClass}>Home</NavLink>
           <NavLink to="/about" className={navClass}>About</NavLink>
           <NavLink to="/policy-library" className={navClass}>Policies</NavLink>
-          <span className="public-nav-link" aria-disabled="true">BITS Organization</span>
+          <a
+            href="http://bitsportal/orgstructure/"
+            className="public-nav-link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            BITS Organization
+          </a>
         </nav>
         <div className="public-header-actions">
           {!loading &&

@@ -8,6 +8,7 @@ import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { hasSectionAccess } from "../components/navItems";
 import { useAuth } from "../hooks/useAuth";
+import { usePageLoading } from "../hooks/usePageLoading";
 import { getCategories } from "../services/categoryService";
 import { deletePolicy, getPolicyDocument, getPolicies } from "../services/policyService";
 
@@ -70,6 +71,7 @@ function Policies() {
   const [viewMode, setViewMode] = useState("list");
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [policyToDelete, setPolicyToDelete] = useState(null);
+  usePageLoading(loading);
 
   useEffect(() => {
     let active = true;

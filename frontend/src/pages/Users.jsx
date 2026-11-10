@@ -7,6 +7,7 @@ import UserModal from "../components/UserModal";
 import ViewToggle from "../components/ViewToggle";
 import { tooltip } from "../components/tooltip";
 import { useAuth } from "../hooks/useAuth";
+import { usePageLoading } from "../hooks/usePageLoading";
 import { getUsers, updateUser } from "../services/userService";
 import { getServiceImageUrl } from "../services/serviceService";
 
@@ -178,6 +179,7 @@ function Users() {
   const [userToUpdate, setUserToUpdate] = useState(null);
   const [refresh, setRefresh] = useState(0);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  usePageLoading(loading);
 
   useEffect(() => {
     let active = true;

@@ -3,6 +3,7 @@ import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, FileText, Search } f
 import toast from "react-hot-toast";
 import { getCategories } from "../services/categoryService";
 import { getPolicies, getPolicyDocument } from "../services/policyService";
+import { usePageLoading } from "../hooks/usePageLoading";
 import "./PublicPoliciesPage.css";
 
 const PAGE_SIZE = 9;
@@ -16,6 +17,7 @@ function PublicPoliciesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  usePageLoading(loading);
 
   useEffect(() => {
     let active = true;

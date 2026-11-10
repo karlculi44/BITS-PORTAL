@@ -3,6 +3,7 @@ import { ClipboardList, LogIn, Pencil, Plus, ShieldAlert } from "lucide-react";
 import AuditLogsTable from "../components/AuditLogsTable";
 import StatCard from "../components/StatCard";
 import { getAuditLogs } from "../services/auditLogService";
+import { usePageLoading } from "../hooks/usePageLoading";
 
 const emptyFilters = { module: "", action: "", username: "", date: "" };
 const actions = ["Login", "Logout", "Login Failed", "Add", "Edit", "Delete"];
@@ -16,6 +17,7 @@ function AuditLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  usePageLoading(loading);
 
   useEffect(() => {
     const controller = new AbortController();
