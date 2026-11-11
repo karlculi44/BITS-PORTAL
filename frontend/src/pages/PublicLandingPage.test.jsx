@@ -81,6 +81,16 @@ function renderLandingPage() {
   );
 }
 
+describe("landing seasonal decorations", () => {
+  it("keeps ornaments in the hero and the existing garland and lights in the header", () => {
+    const { container } = renderLandingPage();
+    expect(container.querySelectorAll(".public-hero .christmas-ornament")).toHaveLength(7);
+    expect(container.querySelector(".public-header .christmas-garland")).toBeTruthy();
+    expect(container.querySelector(".public-header .christmas-lights")).toBeTruthy();
+    expect(container.querySelector(".public-services-section .christmas-ornaments")).toBeNull();
+  });
+});
+
 function AuthControls() {
   const { login, logout } = useAuth();
   return (

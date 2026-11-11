@@ -7,10 +7,25 @@ import bitsLogo from "../assets/images/bits-trimmed.png";
 import Logo from "./Logo";
 import { getServiceImageUrl } from "../services/serviceService";
 import {
+  ChristmasGarland,
   ChristmasLights,
+  publicNavbarChristmasGarland,
   publicNavbarChristmasLights,
-  publicNavbarLightsStripHeight,
+  publicNavbarSeasonalStripHeight,
 } from "../features/seasonal";
+
+const christmasPlacements = [
+  ...(publicNavbarChristmasLights.enabled
+    ? [publicNavbarChristmasLights.placement]
+    : []),
+  ...(publicNavbarChristmasGarland.enabled
+    ? [publicNavbarChristmasGarland.placement]
+    : []),
+];
+const christmasHeaderClasses = [...new Set(christmasPlacements)]
+  .map((placement) => ` public-header--christmas-${placement}`)
+  .join("");
+const christmasDecorationsEnabled = christmasPlacements.length > 0;
 
 function ProfileImage({ user }) {
   const [failedImage, setFailedImage] = useState("");
@@ -35,11 +50,12 @@ function PublicHeader() {
 
   return (
     <header
-      className={`public-header${publicNavbarChristmasLights.enabled ? ` public-header--christmas-${publicNavbarChristmasLights.placement}` : ""}`}
-      style={publicNavbarChristmasLights.enabled ? {
-        "--christmas-strip-height": publicNavbarLightsStripHeight,
+      className={`public-header${christmasHeaderClasses}`}
+      style={christmasDecorationsEnabled ? {
+        "--christmas-strip-height": publicNavbarSeasonalStripHeight,
       } : undefined}
     >
+      <ChristmasGarland {...publicNavbarChristmasGarland} />
       <ChristmasLights {...publicNavbarChristmasLights} />
       <div className="public-header-inner">
         <Link to="/" className="public-brand" aria-label="BITS Portal home">

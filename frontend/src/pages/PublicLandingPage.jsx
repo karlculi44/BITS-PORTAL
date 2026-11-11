@@ -13,6 +13,7 @@ import "@gfazioli/react-tilt/styles.css";
 import bayawanCityLogo from "../assets/images/bayawan_city_logo-trimmed.png";
 import informationTechnologyLogo from "../assets/images/ITS_logo.png";
 import Logo from "../components/Logo";
+import { ChristmasOrnaments, publicHeroChristmasOrnaments } from "../features/seasonal";
 import { usePageLoading } from "../hooks/usePageLoading";
 import { getServices } from "../services/dashboardService";
 import {
@@ -514,6 +515,7 @@ function PublicLandingPage() {
     <div className="public-portal">
       <main>
         <section className="public-hero" aria-labelledby="welcome-heading">
+          <ChristmasOrnaments {...publicHeroChristmasOrnaments} />
           <div className="public-hero-inner">
             <div className="public-hero-copy">
               <p className="public-eyebrow">

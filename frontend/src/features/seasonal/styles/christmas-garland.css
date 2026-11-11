@@ -1,0 +1,89 @@
+.christmas-garland {
+  position: absolute;
+  z-index: 0;
+  inset-inline: 0;
+  height: var(--garland-height);
+  overflow: hidden;
+  opacity: var(--garland-opacity);
+  pointer-events: none;
+}
+
+.christmas-garland--top {
+  top: 0;
+}
+
+.christmas-garland--bottom {
+  bottom: 0;
+}
+
+.christmas-garland-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.christmas-garland-vine-shadow,
+.christmas-garland-vine,
+.christmas-garland-frond-shadow,
+.christmas-garland-frond-stem,
+.christmas-garland-needles {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.christmas-garland-vine-shadow {
+  stroke: rgb(10 27 19 / 55%);
+  stroke-width: 5px;
+}
+
+.christmas-garland-vine {
+  stroke: #304d36;
+  stroke-width: 2.4px;
+}
+
+.christmas-garland-frond-shadow {
+  stroke: rgb(12 30 20 / 44%);
+  stroke-width: 4px;
+}
+
+.christmas-garland-frond-stem {
+  stroke: #365b3d;
+  stroke-width: 2.1px;
+}
+
+.christmas-garland-needles {
+  stroke: #244b34;
+  stroke-width: 1.7px;
+}
+
+.christmas-garland-needles--underside {
+  stroke: #718464;
+  stroke-width: 1.15px;
+}
+
+.christmas-garland-frond--light .christmas-garland-frond-stem {
+  stroke: #587248;
+}
+
+.christmas-garland-frond--light .christmas-garland-needles {
+  stroke: #54724b;
+}
+
+.christmas-garland-frond--deep .christmas-garland-needles--underside {
+  stroke: #415f3c;
+}
+
+.christmas-garland-bud {
+  fill: #8a9a64;
+  stroke: #344c35;
+  stroke-width: 0.8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .christmas-garland {
+    animation: none;
+  }
+}

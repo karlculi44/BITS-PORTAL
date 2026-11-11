@@ -48,6 +48,14 @@ container. It follows the container's width and keeps a steady glow when
 reduced motion is requested. These settings are local; no admin or backend
 configuration is connected yet.
 
+Christmas ornaments are configured in the same seasonal configuration file.
+`publicHeroChristmasOrnaments` controls the landing hero, while
+`adminChristmasOrnaments` controls the small band below the shared admin header.
+Each can be disabled independently; colors, sizes and hanging lengths are arrays
+cycled across the configured count. Sizes and lengths are in pixels, swing speed
+is in seconds and intensity is in degrees. The decorative bands reserve their
+own space, ignore pointer input and stop swinging for reduced motion.
+
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor
 prefers reduced motion, and the tilt does not capture touch gestures.

@@ -1,0 +1,72 @@
+.christmas-ornaments {
+  position: relative;
+  height: var(--ornaments-height);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.christmas-ornaments--public {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.christmas-ornaments--admin {
+  width: min(220px, 42%);
+  margin-inline: auto;
+}
+
+.christmas-ornament {
+  position: absolute;
+  top: 0;
+  left: var(--ornament-position);
+  display: flex;
+  width: var(--ornament-size);
+  align-items: center;
+  flex-direction: column;
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+  animation: christmas-ornament-swing var(--ornament-duration) ease-in-out var(--ornament-delay) infinite alternate;
+}
+
+.christmas-ornament-string {
+  width: 1px;
+  height: var(--ornament-string);
+  background: linear-gradient(90deg, #82704b, #efe1ac);
+}
+
+.christmas-ornament-cap {
+  width: 30%;
+  height: max(4px, calc(var(--ornament-size) * 0.15));
+  border: 1px solid #9a7734;
+  border-radius: 2px 2px 0 0;
+  background: repeating-linear-gradient(90deg, #a17b36 0 2px, #f7df98 2px 4px);
+}
+
+.christmas-ornament-bauble {
+  width: var(--ornament-size);
+  height: var(--ornament-size);
+  margin-top: -1px;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 30% 23%, rgb(255 255 255 / 90%) 0, rgb(255 255 255 / 30%) 10%, transparent 28%),
+    radial-gradient(ellipse at 70% 76%, rgb(255 255 255 / 25%), transparent 30%),
+    radial-gradient(circle at 35% 30%, var(--ornament-color) 20%, color-mix(in srgb, var(--ornament-color), #111827 55%) 100%);
+  box-shadow: inset -3px -4px 7px rgb(0 0 0 / 25%), 0 3px 6px rgb(0 0 0 / 22%);
+}
+
+@keyframes christmas-ornament-swing {
+  from { transform: translateX(-50%) rotate(calc(-1 * var(--ornament-swing))); }
+  to { transform: translateX(-50%) rotate(var(--ornament-swing)); }
+}
+
+@media (max-width: 640px) {
+  .christmas-ornaments--public .christmas-ornament:nth-child(even) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .christmas-ornament {
+    animation: none;
+  }
+}
