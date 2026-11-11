@@ -61,6 +61,52 @@ the motion is disabled for reduced motion. A push settles naturally even if
 the pointer leaves the bauble. Clicking a bauble pushes it again with a random
 direction and a duration between 75% and 125% of its configured swing duration.
 
+### Christmas snowfall
+
+One `ApplicationSnowfall` instance lives outside the routed layouts and animated
+outlets, under `PageTransition` in `App`. Every public route (including About,
+Policies, Login and Unauthorized) and every admin route receives snowfall.
+It uses the existing public route definitions to select a preset, so future
+routes do not need individual snowfall components. Particle/layer nodes persist
+through navigation, browser history and public/admin preset switches.
+The centralized `publicChristmasSnowfall` and
+`adminChristmasSnowfall` presets in `src/features/seasonal/configs/christmas.js`
+control it independently, without changing lights, garlands or ornaments.
+Set a preset's `enabled` to `false` to remove its overlay.
+
+Each of the three `layers` configures `count`, `size` (min/max pixels),
+`opacity` (0-1), `duration` (min/max seconds per viewport fall), `drift`
+(min/max signed pixels), `intensity` (0-1 count/opacity multiplier), and
+`flakeRatio` (0-1 fraction of simple six-armed shapes instead of soft dots).
+`depth` selects `behind-content` or `foreground`; `area` selects `viewport`
+or `gutters`. Background and middle layers cover the viewport behind content.
+The foreground layer spans content surfaces, using mixed small, medium and
+occasional larger flakes at moderate opacity. `foreground.clearTop` excludes
+the header region; the desktop admin sidebar is also excluded. The optional
+`gutters` area still supports edge-only presets via `foreground.gutterWidth`.
+The denser public preset uses 116 desktop particles (including 28 larger
+foreground flakes); admin uses 72. Foreground drift varies up to 45px.
+Counts are capped at 48 per layer. `density.mobile` and `density.tablet`
+multiply counts at widths up to 640px and 1024px, respectively.
+`animation.speed` is a positive speed multiplier; `driftDuration` is a min/max
+seconds range. `animation.enabled: false` freezes particles in place, while
+`pauseWhenHidden` pauses both CSS animations when the document is hidden.
+
+Stable particle samples, independent negative delays and alternating drift
+avoid synchronized resets. CSS transforms/opacity animate without JavaScript
+frames. Each layer is independently fixed and clipped; the wrapper uses
+`display: contents` so it does not flatten their stacking order. The shared
+`seasonal-scene` owns isolation: page backdrops paint below background/middle
+snow, while opaque cards, panels, navigation and forms cover it naturally.
+Transparent areas and open gaps still reveal snow. Foreground snow passes above
+cards and content, but below navigation and critical overlays. The admin header
+has its own stacking priority above snow while main content remains below it.
+Foreground snow is hidden while dialogs are open. All snow is non-interactive.
+During public fades the animated outlet stays above background snow.
+Overlays do not receive pointer events or affect scrolling. Snow colors use
+the light/dark `--app-snow-color` token. Reduced motion hides snow entirely.
+These local presets are not yet connected to admin settings or a database.
+
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor
 prefers reduced motion, and the tilt does not capture touch gestures.

@@ -10,6 +10,7 @@ function PublicOutletTransition({ children }) {
   return (
     <motion.div
       className="public-outlet-transition"
+      data-transitioning={fading}
       key={revealing ? transition.nextPageKey : transition?.pageKey}
       initial={revealing ? { opacity: 0, y: 12 } : false}
       animate={fading && !revealing ? { opacity: 0 } : { opacity: 1, y: 0 }}

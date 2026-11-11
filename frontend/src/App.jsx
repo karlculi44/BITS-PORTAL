@@ -20,6 +20,7 @@ import ScrollProgress from "./components/ScrollProgress";
 import ScrollbarVisibility from "./components/ScrollbarVisibility";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
+import { ApplicationSnowfall } from "./features/seasonal";
 
 const publicRoutes = [
   { path: "/", element: <PublicLandingPage /> },
@@ -39,6 +40,7 @@ function App() {
         <ScrollProgress />
         <Toaster position="top-right" />
         <PageTransition publicRoutes={publicRoutes}>
+          <ApplicationSnowfall publicRoutes={publicRoutes} />
           <Routes>
             <Route element={<PublicLayout />}>
               {publicRoutes.map((route) => (

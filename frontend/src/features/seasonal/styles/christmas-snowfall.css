@@ -1,0 +1,146 @@
+.christmas-snowfall {
+  display: contents;
+  pointer-events: none;
+}
+
+.christmas-snowfall-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  contain: layout paint;
+}
+
+.christmas-snowfall-layer[data-depth="foreground"] {
+  z-index: 11;
+  clip-path: inset(var(--snow-clear-top) 0 0);
+}
+
+.christmas-snowfall-layer[data-area="gutters"] {
+  mask-image: linear-gradient(
+    to right,
+    #000,
+    transparent var(--snow-gutter-width),
+    transparent calc(100% - var(--snow-gutter-width)),
+    #000
+  );
+}
+
+@media (min-width: 1024px) {
+  .christmas-snowfall--admin .christmas-snowfall-layer[data-depth="foreground"] {
+    clip-path: inset(var(--snow-clear-top) 0 0 16rem);
+  }
+}
+
+.seasonal-scene:has([role="dialog"]) .christmas-snowfall-layer[data-depth="foreground"],
+body:has(> .modal-backdrop) .christmas-snowfall-layer[data-depth="foreground"] {
+  visibility: hidden;
+}
+
+.christmas-snowfall-particle {
+  position: absolute;
+  top: -24px;
+  width: var(--snow-size);
+  height: var(--snow-size);
+  opacity: var(--snow-opacity);
+  animation: christmas-snow-fall var(--snow-duration) var(--snow-delay) linear infinite;
+}
+
+.christmas-snowfall-particle::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, var(--app-snow-color) 25%, transparent 72%);
+  content: "";
+  animation: christmas-snow-drift var(--snow-drift-duration) var(--snow-drift-delay) ease-in-out infinite alternate;
+}
+
+.christmas-snowfall-particle--flake::before {
+  background:
+    linear-gradient(0deg, transparent 44%, var(--app-snow-color) 45% 55%, transparent 56%),
+    linear-gradient(60deg, transparent 44%, var(--app-snow-color) 45% 55%, transparent 56%),
+    linear-gradient(120deg, transparent 44%, var(--app-snow-color) 45% 55%, transparent 56%);
+  border-radius: 50%;
+}
+
+.christmas-snowfall-layer--foreground .christmas-snowfall-particle::before {
+  opacity: 0.85;
+}
+
+.christmas-snowfall[data-hidden="true"] .christmas-snowfall-particle,
+.christmas-snowfall[data-hidden="true"] .christmas-snowfall-particle::before,
+.christmas-snowfall[data-animated="false"] .christmas-snowfall-particle,
+.christmas-snowfall[data-animated="false"] .christmas-snowfall-particle::before {
+  animation-play-state: paused;
+}
+
+@keyframes christmas-snow-fall {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  4%, 96% {
+    opacity: var(--snow-opacity);
+  }
+  to {
+    transform: translate3d(0, calc(100dvh + 48px), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes christmas-snow-drift {
+  from { transform: translate3d(calc(var(--snow-drift) * -0.5), 0, 0); }
+  45% { transform: translate3d(calc(var(--snow-drift) * 0.2), 0, 0); }
+  to { transform: translate3d(var(--snow-drift), 0, 0); }
+}
+
+/* The scene owns depth; page backdrops must not trap snow above opaque cards. */
+.seasonal-scene:has(.christmas-snowfall) {
+  isolation: isolate;
+}
+
+.seasonal-scene:has(.christmas-snowfall) :is(.app-shell, .public-portal) {
+  isolation: auto;
+}
+
+/* Let the sticky admin header outrank snow without lifting all page content. */
+.seasonal-scene:has(.christmas-snowfall) .app-content {
+  z-index: auto;
+}
+
+.seasonal-scene:has(.christmas-snowfall) .page-content {
+  position: relative;
+  z-index: 10;
+}
+
+.seasonal-scene:has(.christmas-snowfall) :is(
+  .public-hero-inner,
+  .public-content,
+  .public-footer,
+  .christmas-ornaments--public,
+  .about-content,
+  .policy-library-inner,
+  .public-outlet-transition > .rounded-lg
+) {
+  position: relative;
+  z-index: 2;
+}
+
+/* During fades the outgoing/incoming page is a single animated stacking context. */
+.seasonal-scene:has(.christmas-snowfall) .public-outlet-transition[data-transitioning="true"] {
+  position: relative;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .christmas-snowfall-layer {
+    display: none;
+  }
+
+  .christmas-snowfall-particle,
+  .christmas-snowfall-particle::before {
+    animation: none;
+  }
+}

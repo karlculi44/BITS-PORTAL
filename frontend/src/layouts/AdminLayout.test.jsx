@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AuthContext } from "../context/authContextValue";
 import { ThemeProvider } from "../context/ThemeProvider";
 import AdminLayout from "./AdminLayout";
+import { ApplicationSnowfall } from "../features/seasonal";
 
 afterEach(cleanup);
 
@@ -14,6 +15,7 @@ describe("AdminLayout seasonal decorations", () => {
       <AuthContext.Provider value={{ user: { role: "admin", first_name: "Admin" } }}>
         <ThemeProvider>
           <MemoryRouter initialEntries={["/dashboard"]}>
+            <ApplicationSnowfall publicRoutes={[]} />
             <Routes>
               <Route element={<AdminLayout />}>
                 <Route path="/dashboard" element={<p>Dashboard content</p>} />
@@ -25,6 +27,10 @@ describe("AdminLayout seasonal decorations", () => {
       </AuthContext.Provider>,
     );
     const band = container.querySelector(".christmas-ornaments--admin");
+    const snow = container.querySelector(".christmas-snowfall--admin");
+    expect(container.querySelector(".app-shell .christmas-snowfall")).toBeNull();
+    expect(snow.querySelectorAll(".christmas-snowfall-layer")).toHaveLength(3);
+    expect(container.querySelector(".app-content .christmas-snowfall")).toBeNull();
     expect(band.querySelectorAll(".christmas-ornament")).toHaveLength(3);
     expect(band.previousElementSibling.tagName).toBe("HEADER");
     expect(band.nextElementSibling.tagName).toBe("MAIN");
@@ -33,5 +39,7 @@ describe("AdminLayout seasonal decorations", () => {
     expect(screen.getByText("Services content")).toBeTruthy();
     expect(container.querySelectorAll(".christmas-ornaments--admin")).toHaveLength(1);
     expect(container.querySelector(".christmas-ornaments--admin")).toBe(band);
+    expect(container.querySelectorAll(".christmas-snowfall")).toHaveLength(1);
+    expect(container.querySelector(".christmas-snowfall--admin")).toBe(snow);
   });
 });

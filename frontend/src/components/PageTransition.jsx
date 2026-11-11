@@ -119,7 +119,7 @@ function PageTransition({ children, publicRoutes }) {
   };
 
   return (
-    <div onClickCapture={handleClick}>
+    <div className="seasonal-scene" onClickCapture={handleClick}>
       <PageTransitionContext.Provider value={{
         kind: transition.kind,
         phase,
