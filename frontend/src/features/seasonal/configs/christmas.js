@@ -49,8 +49,10 @@ export const christmasOrnamentsDefaults = {
   sizes: [38, 28, 34, 26, 36, 30, 32],
   hangingLengths: [28, 45, 20, 40, 26, 43, 24],
   count: 7,
-  animationSpeed: 5,
+  animationSpeed: 3.2,
+  swingAmplitude: 3,
   animationIntensity: 3,
+  interactive: true,
   placement: "public",
 };
 
@@ -64,7 +66,7 @@ export const adminChristmasOrnaments = {
   sizes: [16, 13, 16],
   hangingLengths: [10, 15, 10],
   count: 3,
-  animationSpeed: 6,
+  animationSpeed: 3,
   animationIntensity: 2,
   placement: "admin",
 };

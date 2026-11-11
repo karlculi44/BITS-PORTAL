@@ -25,7 +25,10 @@
   flex-direction: column;
   transform: translateX(-50%);
   transform-origin: 50% 0;
-  animation: christmas-ornament-swing var(--ornament-duration) ease-in-out var(--ornament-delay) infinite alternate;
+}
+
+.christmas-ornament--swinging {
+  animation: christmas-ornament-swing calc(var(--ornament-duration) * var(--ornament-speed-factor, 1)) ease-in-out;
 }
 
 .christmas-ornament-string {
@@ -54,9 +57,18 @@
   box-shadow: inset -3px -4px 7px rgb(0 0 0 / 25%), 0 3px 6px rgb(0 0 0 / 22%);
 }
 
+.christmas-ornament-bauble--interactive {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 @keyframes christmas-ornament-swing {
-  from { transform: translateX(-50%) rotate(calc(-1 * var(--ornament-swing))); }
-  to { transform: translateX(-50%) rotate(var(--ornament-swing)); }
+  0% { transform: var(--ornament-start, translateX(-50%) rotate(0deg)); }
+  12% { transform: translateX(-50%) rotate(calc(var(--ornament-swing) * var(--ornament-direction, 1))); }
+  35% { transform: translateX(-50%) rotate(calc(var(--ornament-swing) * var(--ornament-direction, 1) * -0.6)); }
+  57% { transform: translateX(-50%) rotate(calc(var(--ornament-swing) * var(--ornament-direction, 1) * 0.32)); }
+  78% { transform: translateX(-50%) rotate(calc(var(--ornament-swing) * var(--ornament-direction, 1) * -0.12)); }
+  100% { transform: translateX(-50%) rotate(0deg); }
 }
 
 @media (max-width: 640px) {
@@ -66,7 +78,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .christmas-ornament {
-    animation: none;
+  .christmas-ornament--swinging {
+    animation-duration: 0.001ms;
   }
 }

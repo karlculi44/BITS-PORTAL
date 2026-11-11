@@ -52,9 +52,14 @@ Christmas ornaments are configured in the same seasonal configuration file.
 `publicHeroChristmasOrnaments` controls the landing hero, while
 `adminChristmasOrnaments` controls the small band below the shared admin header.
 Each can be disabled independently; colors, sizes and hanging lengths are arrays
-cycled across the configured count. Sizes and lengths are in pixels, swing speed
-is in seconds and intensity is in degrees. The decorative bands reserve their
-own space, ignore pointer input and stop swinging for reduced motion.
+cycled across the configured count. Sizes and lengths are in pixels;
+`animationSpeed` is the swing duration in seconds, `swingAmplitude` is in
+degrees, and `animationIntensity` multiplies that amplitude. Set `interactive`
+to `false` to disable hover and touch responses independently for either area.
+Only the baubles receive pointer input; the bands reserve their own space and
+the motion is disabled for reduced motion. A push settles naturally even if
+the pointer leaves the bauble. Clicking a bauble pushes it again with a random
+direction and a duration between 75% and 125% of its configured swing duration.
 
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor
