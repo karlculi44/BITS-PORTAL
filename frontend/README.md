@@ -38,6 +38,16 @@ who prefer reduced motion navigate immediately. Direct URLs and browser history
 retain their normal routing behavior.
 The landing page also fades in when it loads, unless reduced motion is enabled.
 
+The public navbar's Christmas lights are configured in
+`src/features/seasonal/configs/christmas.js`. Set `enabled` to `false` to remove
+the decoration and its reserved header space. Bulb size and spacing are in
+pixels, animation speed is in seconds, wire curvature is the sag in pixels,
+and glow intensity is a multiplier from 0 to 1. The reusable component also
+accepts a color array and `top` or `bottom` placement inside a positioned
+container. It follows the container's width and keeps a steady glow when
+reduced motion is requested. These settings are local; no admin or backend
+configuration is connected yet.
+
 The landing page's identity card uses a spring-based cursor tilt and glare,
 with a periodic glass reflection. These effects are disabled when the visitor
 prefers reduced motion, and the tilt does not capture touch gestures.

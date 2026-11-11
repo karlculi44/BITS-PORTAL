@@ -6,6 +6,11 @@ import { useAuth } from "../hooks/useAuth";
 import bitsLogo from "../assets/images/bits-trimmed.png";
 import Logo from "./Logo";
 import { getServiceImageUrl } from "../services/serviceService";
+import {
+  ChristmasLights,
+  publicNavbarChristmasLights,
+  publicNavbarLightsStripHeight,
+} from "../features/seasonal";
 
 function ProfileImage({ user }) {
   const [failedImage, setFailedImage] = useState("");
@@ -29,7 +34,13 @@ function PublicHeader() {
     `public-nav-link${isActive ? " active" : ""}`;
 
   return (
-    <header className="public-header">
+    <header
+      className={`public-header${publicNavbarChristmasLights.enabled ? ` public-header--christmas-${publicNavbarChristmasLights.placement}` : ""}`}
+      style={publicNavbarChristmasLights.enabled ? {
+        "--christmas-strip-height": publicNavbarLightsStripHeight,
+      } : undefined}
+    >
+      <ChristmasLights {...publicNavbarChristmasLights} />
       <div className="public-header-inner">
         <Link to="/" className="public-brand" aria-label="BITS Portal home">
           <Logo src={bitsLogo} alt="" className="public-brand-logo" />

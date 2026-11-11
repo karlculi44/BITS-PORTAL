@@ -566,6 +566,14 @@ select option {
   backdrop-filter: blur(18px);
 }
 
+.public-header--christmas-top {
+  padding-top: var(--christmas-strip-height);
+}
+
+.public-header--christmas-bottom {
+  padding-bottom: var(--christmas-strip-height);
+}
+
 .public-header-inner,
 .public-content,
 .public-footer-inner {
@@ -1262,7 +1270,7 @@ html[data-theme-transition="true"]::view-transition-new(theme-switch) {
 }
 
 .public-services-section {
-  scroll-margin-top: 6rem;
+  scroll-margin-top: calc(6rem + var(--christmas-strip-height, 0px));
   padding: 3.25rem 0 3.5rem;
 }
 
@@ -1785,7 +1793,7 @@ a:hover > .public-footer-logo {
 
 @media (max-width: 900px) {
   .public-services-section {
-    scroll-margin-top: 7.5rem;
+    scroll-margin-top: calc(7.5rem + var(--christmas-strip-height, 0px));
   }
 
   .public-header-inner {
