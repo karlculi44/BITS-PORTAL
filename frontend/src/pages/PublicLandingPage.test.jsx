@@ -112,10 +112,12 @@ function renderLandingWithAuth() {
 
 beforeEach(() => {
   window.localStorage.clear();
+  getServices.mockReset();
+  getServiceCategories.mockReset();
   getServices.mockResolvedValue(services);
   getServiceCategories.mockResolvedValue([
-    { id: 1, name: "Business", type: "service" },
-    { id: 2, name: "Utilities", type: "service" },
+    { id: 1, name: "Business", type: "service", is_active: true },
+    { id: 2, name: "Utilities", type: "service", is_active: true },
   ]);
 });
 
@@ -390,6 +392,131 @@ describe("Public landing page", () => {
     expect(screen.getAllByText("1–1")).toHaveLength(2);
     expect(screen.getAllByText("1", { selector: "strong" })).toHaveLength(2);
   });
+
+    it("waits for the default and filters services, then allows manual changes", async () => {
+      let resolveCategories;
+      getServiceCategories.mockReturnValue(new Promise((resolve) => {
+        resolveCategories = resolve;
+      }));
+      renderLandingPage();
+      const select = screen.getByLabelText("Filter by category");
+      expect(select.disabled).toBe(true);
+      expect(screen.getByRole("option", { name: "Loading categories..." })).toBeTruthy();
+      expect(screen.queryByRole("option", { name: "All Categories" })).toBeNull();
+      expect(screen.queryByText("Business Permit")).toBeNull();
+
+      await act(async () => resolveCategories([
+        { id: 1, name: "Executive Orders", type: "service", is_active: true, is_default: true },
+        { id: 2, name: "Memorandum Orders", type: "service", is_active: true, is_default: false },
+      ]));
+      expect(select.value).toBe("1");
+      expect(screen.getByText("Business Permit")).toBeTruthy();
+      expect(screen.queryByText("Water Billing")).toBeNull();
+      fireEvent.change(select, { target: { value: "2" } });
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+      expect(screen.queryByText("Business Permit")).toBeNull();
+      fireEvent.change(screen.getByLabelText("Search services"), { target: { value: "water" } });
+      expect(select.value).toBe("2");
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+    });
+
+    it("uses the latest default on a fresh page load", async () => {
+      const categories = [
+        { id: 1, name: "Executive Orders", type: "service", is_active: true, is_default: true },
+        { id: 2, name: "Memorandum Orders", type: "service", is_active: true, is_default: false },
+      ];
+      getServiceCategories.mockResolvedValueOnce(categories).mockResolvedValueOnce([
+        { ...categories[0], is_default: false },
+        { ...categories[1], is_default: true },
+      ]);
+      const first = renderLandingPage();
+      await screen.findByText("Business Permit");
+      expect(screen.getByLabelText("Filter by category").value).toBe("1");
+      first.unmount();
+      renderLandingPage();
+      await screen.findByText("Water Billing");
+      expect(screen.getByLabelText("Filter by category").value).toBe("2");
+      expect(screen.queryByText("Business Permit")).toBeNull();
+    });
+
+    it.each([
+      ["no default", []],
+      ["All Categories", [{ id: 1, name: "Business", type: "service", is_active: true, is_default: false }]],
+      ["inactive default", [{ id: 1, name: "Inactive", type: "service", is_active: false, is_default: true }]],
+      ["policy default", [{ id: 1, name: "Policy", type: "policy", is_active: true, is_default: true }]],
+    ])("falls back to all services for %s", async (_scenario, categories) => {
+      getServiceCategories.mockResolvedValue(categories);
+      renderLandingPage();
+      await screen.findByText("Business Permit");
+      expect(screen.getByLabelText("Filter by category").value).toBe("");
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+      expect(screen.queryByRole("option", { name: "Policy" })).toBeNull();
+    });
+
+    it("keeps services usable when categories fail and preserves manual selection on retry", async () => {
+      getServiceCategories.mockRejectedValueOnce(new Error("Network error"))
+        .mockResolvedValueOnce([
+          { id: 1, name: "Business", type: "service", is_active: true, is_default: true },
+          { id: 2, name: "Utilities", type: "service", is_active: true },
+        ]);
+      renderLandingPage();
+      expect((await screen.findByRole("alert")).textContent).toContain("Unable to load service categories");
+      expect(screen.getByText("Business Permit")).toBeTruthy();
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+      expect(screen.getByLabelText("Filter by category").value).toBe("");
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      await screen.findByRole("option", { name: "Utilities" });
+      expect(screen.getByLabelText("Filter by category").value).toBe("");
+      fireEvent.change(screen.getByLabelText("Filter by category"), { target: { value: "2" } });
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+      expect(screen.queryByText("Business Permit")).toBeNull();
+    });
+
+    it("keeps a visitor's manual category when service loading is retried", async () => {
+      getServices.mockRejectedValueOnce(new Error("Network error")).mockResolvedValue(services);
+      getServiceCategories.mockResolvedValueOnce([
+        { id: 1, name: "Business", type: "service", is_active: true, is_default: true },
+        { id: 2, name: "Utilities", type: "service", is_active: true },
+      ]).mockResolvedValueOnce([
+        { id: 1, name: "Business", type: "service", is_active: true },
+        { id: 2, name: "Utilities", type: "service", is_active: true, is_default: true },
+      ]);
+      renderLandingPage();
+      await screen.findByRole("alert");
+      fireEvent.change(screen.getByLabelText("Filter by category"), { target: { value: "" } });
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      await screen.findByText("Business Permit");
+      expect(screen.getByLabelText("Filter by category").value).toBe("");
+      expect(screen.getByText("Water Billing")).toBeTruthy();
+    });
+
+    it("preserves pagination and search with a configured default", async () => {
+      vi.stubGlobal("matchMedia", vi.fn(() => ({
+        matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+      })));
+      getServices.mockResolvedValue([
+        ...services,
+        ...Array.from({ length: 7 }, (_, index) => ({
+          id: 100 + index, title: `Business Extra ${index}`, category_id: 1,
+        })),
+      ]);
+      getServiceCategories.mockResolvedValue([
+        { id: 1, name: "Business", type: "service", is_active: true, is_default: true },
+        { id: 2, name: "Utilities", type: "service", is_active: true },
+      ]);
+      renderLandingPage();
+      await screen.findByText("Business Permit");
+      expect(screen.getAllByText("Page 1 of 2")).toHaveLength(2);
+      fireEvent.click(screen.getByRole("button", { name: "Next page (top)" }));
+      expect(screen.getAllByText("Page 2 of 2")).toHaveLength(2);
+      fireEvent.change(screen.getByLabelText("Services per page (top)"), { target: { value: "9" } });
+      expect(screen.getAllByText("Page 1 of 2")).toHaveLength(2);
+      fireEvent.change(screen.getByLabelText("Search services"), { target: { value: "permit" } });
+      expect(screen.getAllByText("Page 1 of 1")).toHaveLength(2);
+      expect(screen.getByText("Business Permit")).toBeTruthy();
+      expect(screen.getByLabelText("Filter by category").value).toBe("1");
+      expect(screen.queryByText("Water Billing")).toBeNull();
+    });
 
   it("supports page sizing, navigation, and resets pagination after filtering", async () => {
     renderLandingPage();

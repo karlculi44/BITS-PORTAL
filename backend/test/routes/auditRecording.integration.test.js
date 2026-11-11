@@ -111,8 +111,26 @@ describe("automatic audit recording", () => {
       .send({ name: `${name} renamed` })).status).toBe(200);
     expect((await auth(request(app).patch(`/api/categories/${serviceCategory}/default`))
       .send({ isDefault: true })).status).toBe(200);
-    expect((await auth(request(app).patch(`/api/categories/${serviceCategory}/default`))
+    const publicDefaults = async () => {
+      const response = await request(app).get("/api/categories?type=service");
+      expect(response.status).toBe(200);
+      return response.body.filter((category) => category.is_default);
+    };
+    expect(await publicDefaults()).toMatchObject([{ id: serviceCategory, type: "service", is_active: true }]);
+    expect((await auth(request(app).patch(`/api/categories/${policyCategory}/default`))
+      .send({ isDefault: true })).status).toBe(400);
+    expect(await publicDefaults()).toMatchObject([{ id: serviceCategory }]);
+    expect((await auth(request(app).patch(`/api/categories/${secondServiceCategory}/default`))
+      .send({ isDefault: true })).status).toBe(200);
+    expect(await publicDefaults()).toMatchObject([{ id: secondServiceCategory }]);
+    expect((await auth(request(app).patch(`/api/categories/${secondServiceCategory}`))
+      .send({ isActive: false })).status).toBe(200);
+    expect(await publicDefaults()).toMatchObject([{ id: secondServiceCategory, is_active: false }]);
+    expect((await auth(request(app).patch(`/api/categories/${secondServiceCategory}`))
+      .send({ isActive: true })).status).toBe(200);
+    expect((await auth(request(app).patch(`/api/categories/${secondServiceCategory}/default`))
       .send({ isDefault: false })).status).toBe(200);
+    expect(await publicDefaults()).toEqual([]);
     expect((await auth(request(app).patch(`/api/categories/${policyCategory}`))
       .send({ name: `${name} policy renamed` })).status).toBe(200);
 

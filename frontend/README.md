@@ -19,7 +19,12 @@ deployment must separately configure the backend to allow credentialed CORS.
 
 The public landing page at `/` loads services from `GET /api/services` and
 service categories from `GET /api/categories?type=service`. Visitors can search,
-filter, and paginate the service list without signing in. Other category-list
+filter, and paginate the service list without signing in. The active service
+category marked as default is selected on a fresh page load; no default or an
+inactive default selects All Categories instead. All Categories is represented
+by having no default service category, not by a database category. A visitor's
+manual selection is preserved during retries. If categories cannot be loaded
+initially, the page shows all services and offers a retry. Other category-list
 requests remain protected. The admin Services page uses the same service list;
 admins can create and edit services using `POST /api/services` and
 `PATCH /api/services/:id`.

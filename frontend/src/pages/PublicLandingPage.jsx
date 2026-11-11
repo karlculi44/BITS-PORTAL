@@ -164,34 +164,50 @@ function PublicLandingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [categoryError, setCategoryError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [transition, setTransition] = useState(null);
   const gridRef = useRef(null);
   const incomingGridRef = useRef(null);
   const transitionId = useRef(0);
   const transitionLock = useRef(false);
+  const categoryInitialized = useRef(false);
   usePageLoading(loading);
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([getServices(), getServiceCategories()])
+    Promise.allSettled([getServices(), getServiceCategories()])
       .then(([serviceResult, categoryResult]) => {
-        if (!Array.isArray(serviceResult)) {
-          throw new Error("Invalid services response");
-        }
-        if (active) {
-          setServices(serviceResult);
-          setCategories(categoryResult);
-        }
-      })
-      .catch((error) => {
-        if (active) {
+        if (!active) return;
+
+        if (serviceResult.status === "fulfilled" && Array.isArray(serviceResult.value)) {
+          setServices(serviceResult.value);
+        } else {
+          const error = serviceResult.status === "rejected" ? serviceResult.reason : null;
           setLoadError(
-            error.response?.data?.message ||
+            error?.response?.data?.message ||
               "Unable to load services right now. Please try again.",
           );
         }
+
+        if (categoryResult.status === "fulfilled" && Array.isArray(categoryResult.value)) {
+          const serviceCategories = categoryResult.value.filter(
+            (category) => category.type === "service",
+          );
+          setCategories(serviceCategories);
+          if (!categoryInitialized.current) {
+            const defaultCategory = serviceCategories.find(
+              (category) => category.is_default && category.is_active === true,
+            );
+            setCategoryFilter(defaultCategory ? String(defaultCategory.id) : "");
+          }
+        } else {
+          setCategoryError(
+            "Unable to load service categories. The current selection is unchanged.",
+          );
+        }
+        categoryInitialized.current = true;
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -391,6 +407,13 @@ function PublicLandingPage() {
     <PaginationControls position={position} {...paginationProps} />
   );
 
+  const retryLoading = () => {
+    setLoading(true);
+    setLoadError("");
+    setCategoryError("");
+    setReloadKey((value) => value + 1);
+  };
+
   const incomingClass =
     transition?.direction === "size"
       ? "public-service-grid-curtain"
@@ -414,11 +437,7 @@ function PublicLandingPage() {
           <p>{loadError}</p>
           <button
             type="button"
-            onClick={() => {
-              setLoading(true);
-              setLoadError("");
-              setReloadKey((value) => value + 1);
-            }}
+            onClick={retryLoading}
           >
             Try again
           </button>
@@ -624,17 +643,30 @@ function PublicLandingPage() {
                   value={categoryFilter}
                   onChange={(event) => updateCategory(event.target.value)}
                   aria-label="Filter by category"
+                  disabled={loading}
                 >
-                  <option value="">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </option>
-                  ))}
+                  {loading ? (
+                    <option value={categoryFilter}>Loading categories...</option>
+                  ) : (
+                    <>
+                      <option value="">All Categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={String(category.id)}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </label>
             </div>
 
+            {categoryError && !loadError && (
+              <div className="public-state public-state-error" role="alert">
+                <p>{categoryError}</p>
+                <button type="button" onClick={retryLoading}>Try again</button>
+              </div>
+            )}
             {renderPagination("top")}
             {renderServices()}
             {renderPagination("bottom")}

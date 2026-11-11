@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AuthContext } from "../context/authContextValue";
-import { deleteCategory, getCategories } from "../services/categoryService";
+import { deleteCategory, getCategories, setDefaultCategory } from "../services/categoryService";
 import toast from "react-hot-toast";
 import Categories from "./Categories";
 
@@ -100,6 +100,34 @@ describe("Categories page item counts", () => {
     expect(
       within(policyTable).queryByRole("row", { name: /All Categories/ }),
     ).toBeNull();
+    expect(within(policyTable).queryByRole("columnheader", { name: "Default" })).toBeNull();
+    expect(within(policyTable).queryByRole("checkbox")).toBeNull();
+  });
+
+  it("switches the service default and persists the virtual All Categories selection", async () => {
+    getCategories.mockResolvedValue(serviceCategories);
+    setDefaultCategory.mockResolvedValue({});
+    renderPage();
+
+    const all = await screen.findByRole("checkbox", { name: "Set All Categories as default service category" });
+    const first = screen.getByRole("checkbox", { name: "Set IT Services as default service category" });
+    const second = screen.getByRole("checkbox", { name: "Set Others as default service category" });
+    expect(all.checked).toBe(true);
+
+    fireEvent.click(first);
+    await waitFor(() => expect(first.checked).toBe(true));
+    expect(setDefaultCategory).toHaveBeenLastCalledWith(1, true);
+    expect(all.checked).toBe(false);
+
+    fireEvent.click(second);
+    await waitFor(() => expect(second.checked).toBe(true));
+    expect(setDefaultCategory).toHaveBeenLastCalledWith(2, true);
+    expect(first.checked).toBe(false);
+
+    fireEvent.click(all);
+    await waitFor(() => expect(all.checked).toBe(true));
+    expect(setDefaultCategory).toHaveBeenLastCalledWith(2, false);
+    expect(second.checked).toBe(false);
   });
 
   describe("Category deletion", () => {
